@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title id="app-title">MindMap AI</title>
+<link id="app-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#f1f5f9;--surface:#fff;--surface-2:#f8fafc;--text:#334155;--text-muted:#64748b;--border:#e2e8f0;--primary:#667eea;--primary-dark:#5568d3;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--info:#3b82f6;--canvas-bg:#f8fafc;--node-bg:#fff;--shadow:rgba(0,0,0,.05)}
+[data-theme="dark"]{--bg:#0f172a;--surface:#1e293b;--surface-2:#334155;--text:#f1f5f9;--text-muted:#94a3b8;--border:#475569;--primary:#818cf8;--primary-dark:#6366f1;--canvas-bg:#0f172a;--node-bg:#1e293b;--shadow:rgba(0,0,0,.3)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
+body{background:var(--bg);color:var(--text);overflow:hidden;height:100vh}
+.screen{display:none;height:100vh;flex-direction:column}
+.screen.active{display:flex}
+@media(max-width:768px){.auth-box{padding:1.5rem;max-width:95%}.dashboard-header{padding:.75rem 1rem;flex-wrap:wrap;gap:.5rem}.dashboard-header h1{font-size:1.1rem}.header-actions{flex-wrap:wrap;gap:6px}.header-actions button,.header-actions select{padding:6px 10px;font-size:12px}.dashboard-content{padding:1rem}.maps-grid{grid-template-columns:1fr}.toolbar{padding:.5rem 1rem;gap:6px;overflow-x:auto}.tool-btn{padding:6px 10px;font-size:12px;white-space:nowrap}.consulting-panel,.admin-panel{width:100%}.consulting-panel{right:-100%}.consulting-panel.open{right:0}.admin-panel{left:-100%}.admin-panel.open{left:0}.modal-box{padding:1.5rem;max-width:95%}.plans-grid,.payment-methods{grid-template-columns:1fr}}
+.auth-screen{align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:1rem}
+.auth-box{background:var(--surface);padding:2.5rem;border-radius:12px;box-shadow:0 10px 25px var(--shadow);width:100%;max-width:420px}
+.auth-logo{text-align:center;margin-bottom:1.5rem}
+.auth-logo img{max-width:80px;max-height:80px;margin-bottom:.5rem}
+.auth-logo h2{color:var(--text);font-size:1.5rem}
+.auth-box input,.auth-box select{width:100%;padding:12px;margin-bottom:1rem;border:2px solid var(--border);border-radius:6px;font-size:15px;background:var(--surface);color:var(--text)}
+.auth-box input:focus{outline:none;border-color:var(--primary)}
+.auth-box button{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:.5rem}
+.auth-switch{text-align:center;margin-top:1rem;font-size:14px;color:var(--text-muted)}
+.auth-switch a{color:var(--primary);cursor:pointer;text-decoration:underline}
+.auth-error{color:var(--danger);background:#fee2e2;padding:10px;border-radius:6px;margin-bottom:1rem;font-size:13px;display:none}
+.auth-success{color:#065f46;background:#d1fae5;padding:10px;border-radius:6px;margin-bottom:1rem;font-size:13px;display:none}
+.dashboard-header{background:var(--surface);padding:1rem 2rem;box-shadow:0 2px 4px var(--shadow);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:1rem}
+.dashboard-header h1{font-size:1.5rem;display:flex;align-items:center;gap:10px}
+.dashboard-header h1 img{max-height:40px}
+.header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.header-actions button,.header-actions select{padding:8px 16px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-weight:bold;font-size:13px;background:var(--surface);color:var(--text)}
+.btn-primary{background:var(--primary)!important;color:#fff!important;border:none!important}
+.btn-danger{background:var(--danger)!important;color:#fff!important;border:none!important}
+.btn-success{background:var(--success)!important;color:#fff!important;border:none!important}
+.user-info{font-size:13px;color:var(--text-muted);padding:6px 12px;background:var(--surface-2);border-radius:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.badge{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold}
+.badge-master{background:#fef3c7;color:#92400e}
+.badge-admin{background:#dbeafe;color:#1e40af}
+.badge-user{background:#e0e7ff;color:#3730a3}
+.badge-plan{background:var(--success);color:#fff}
+.dashboard-content{flex:1;overflow-y:auto;padding:2rem;background:var(--bg)}
+.maps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;max-width:1400px;margin:0 auto}
+.map-card{background:var(--surface);border-radius:12px;padding:1.5rem;box-shadow:0 4px 6px var(--shadow);transition:all .2s;border:1px solid var(--border)}
+.map-card:hover{transform:translateY(-2px);box-shadow:0 8px 16px var(--shadow)}
+.map-card h3{font-size:1.1rem;margin-bottom:.5rem}
+.map-card-info{font-size:12px;color:var(--text-muted);margin-bottom:1rem}
+.map-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.map-card-actions button{flex:1;min-width:80px;padding:6px 12px;border-radius:4px;border:none;cursor:pointer;font-size:12px;font-weight:bold;color:#fff}
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--text-muted);grid-column:1/-1}
+.editor-header{background:var(--surface);padding:.75rem 1.5rem;box-shadow:0 2px 4px var(--shadow);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.5rem}
+.editor-header h1{font-size:1.1rem;display:flex;align-items:center;gap:10px}
+.toolbar{background:var(--surface-2);padding:.5rem 1.5rem;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;overflow-x:auto}
+.tool-btn{background:var(--surface);border:1px solid var(--border);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--text);white-space:nowrap}
+.tool-btn:hover{background:var(--bg)}
+.tool-btn.ai{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;font-weight:bold}
+.tool-btn.ai-2{background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;border:none}
+.tool-btn.export{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none}
+.zoom-controls{display:flex;gap:5px;align-items:center;margin-left:auto}
+.zoom-controls button{padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;cursor:pointer}
+.zoom-level{font-size:12px;color:var(--text-muted);min-width:45px;text-align:center}
+.canvas-container{flex:1;position:relative;overflow:auto;background:var(--canvas-bg)}
+.canvas-container[data-bg="grid"]{background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:20px 20px}
+.canvas-container[data-bg="dots"]{background-image:radial-gradient(var(--border) 1.5px,transparent 1.5px);background-size:30px 30px}
+.canvas-container[data-bg="plain"]{background-image:none}
+.canvas-wrapper{position:absolute;top:0;left:0;transform-origin:0 0;transition:transform .1s}
+.connections{position:absolute;width:5000px;height:5000px;pointer-events:none;z-index:1}
+.nodes-container{position:absolute;width:5000px;height:5000px;z-index:2}
+.node{position:absolute;background:var(--node-bg);border:3px solid var(--border);border-radius:10px;box-shadow:0 4px 6px var(--shadow);display:flex;align-items:stretch;min-width:180px;max-width:300px;transition:box-shadow .2s;user-select:none;cursor:pointer}
+.node:hover{box-shadow:0 8px 16px var(--shadow)}
+.node.selected{box-shadow:0 0 0 3px rgba(102,126,234,.3)}
+.node[data-p="critica"]{border-color:#ef4444;background:linear-gradient(135deg,#fee2e2,var(--node-bg))}
+.node[data-p="alta"]{border-color:#f97316;background:linear-gradient(135deg,#ffedd5,var(--node-bg))}
+.node[data-p="media"]{border-color:#eab308;background:linear-gradient(135deg,#fef9c3,var(--node-bg))}
+.node[data-p="baixa"]{border-color:#22c55e;background:linear-gradient(135deg,#dcfce7,var(--node-bg))}
+.node[data-p="info"]{border-color:#3b82f6;background:linear-gradient(135deg,#dbeafe,var(--node-bg))}
+.node[data-level="0"]{background:linear-gradient(135deg,#667eea,#764ba2);border-color:#667eea}
+.node[data-level="0"] .node-text,.node[data-level="0"] .drag-handle{color:#fff}
+.node[data-level="0"] .drag-handle{background:rgba(255,255,255,.2);border-right-color:rgba(255,255,255,.3)}
+.drag-handle{cursor:grab;background:var(--surface-2);padding:8px 6px;border-radius:8px 0 0 8px;color:var(--text-muted);display:flex;align-items:center;border-right:1px solid var(--border);font-size:14px}
+.drag-handle:active{cursor:grabbing}
+.node-content{flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.node-text{outline:none;font-size:14px;color:var(--text);min-height:24px;font-weight:500;word-wrap:break-word}
+.node-text:empty:before{content:'Digite aqui...';color:var(--text-muted)}
+.priority-badge,.progress-badge{display:inline-flex;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:4px;width:fit-content}
+.priority-badge{background:var(--surface-2);color:var(--text-muted)}
+.progress-badge{background:var(--success);color:#fff}
+.info-icon{position:absolute;top:-8px;right:-8px;width:22px;height:22px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;cursor:pointer;border:2px solid var(--surface)}
+.info-icon.has-details{background:var(--success)}
+.consulting-panel{position:fixed;top:0;right:-500px;width:480px;height:100vh;background:var(--surface);box-shadow:-4px 0 20px var(--shadow);z-index:50;transition:right .3s;display:flex;flex-direction:column;border-left:1px solid var(--border)}
+.consulting-panel.open{right:0}
+.panel-header{padding:1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.panel-header h2{font-size:1.2rem;flex:1}
+.panel-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted)}
+.priority-selector{padding:.75rem 1.25rem;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap}
+.priority-option{padding:5px 10px;border-radius:6px;border:2px solid transparent;cursor:pointer;font-size:11px;font-weight:bold}
+.priority-option.active{border-color:var(--text)}
+.priority-option[data-p="critica"]{background:#fee2e2;color:#991b1b}
+.priority-option[data-p="alta"]{background:#ffedd5;color:#9a3412}
+.priority-option[data-p="media"]{background:#fef9c3;color:#854d0e}
+.priority-option[data-p="baixa"]{background:#dcfce7;color:#166534}
+.priority-option[data-p="info"]{background:#dbeafe;color:#1e40af}
+.panel-content{flex:1;overflow-y:auto;padding:1.25rem}
+.section{margin-bottom:1rem}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;cursor:pointer}
+.section-title{font-size:13px;font-weight:bold}
+.section-toggle{font-size:12px;color:var(--text-muted)}
+.section.collapsed .section-toggle{transform:rotate(-90deg)}
+.section.collapsed .section-body{display:none}
+.section-body{background:var(--surface-2);border-radius:8px;padding:.75rem;border:1px solid var(--border)}
+.section-body textarea{width:100%;min-height:70px;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;resize:vertical;background:var(--surface);color:var(--text)}
+.checklist-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.checklist-item input{width:18px;height:18px;cursor:pointer}
+.checklist-item span{flex:1;font-size:13px}
+.checklist-item.completed span{text-decoration:line-through;color:var(--text-muted)}
+.checklist-item button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px}
+.add-checklist{margin-top:.5rem;display:flex;gap:6px}
+.add-checklist input{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:var(--surface);color:var(--text)}
+.add-checklist button{padding:6px 12px;background:var(--success);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold}
+.panel-footer{padding:.75rem 1.25rem;border-top:1px solid var(--border);background:var(--surface-2);display:flex;gap:8px}
+.panel-footer button{flex:1;padding:10px;border-radius:6px;border:none;cursor:pointer;font-weight:bold;font-size:13px}
+.admin-panel{position:fixed;top:0;left:-380px;width:380px;height:100vh;background:var(--surface);box-shadow:4px 0 20px var(--shadow);z-index:60;transition:left .3s;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.admin-panel.open{left:0}
+.admin-panel-header{padding:1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.admin-panel-header h2{font-size:1.1rem}
+.admin-panel-content{flex:1;overflow-y:auto;padding:1rem}
+.admin-section{margin-bottom:1.5rem}
+.admin-section h3{font-size:13px;font-weight:bold;color:var(--text-muted);text-transform:uppercase;margin-bottom:.5rem;padding-bottom:.25rem;border-bottom:1px solid var(--border)}
+.admin-item{padding:10px;background:var(--surface-2);border-radius:6px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border)}
+.admin-item:hover{background:var(--bg)}
+.admin-item small{color:var(--text-muted);font-size:11px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--surface);padding:2rem;border-radius:12px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;color:var(--text)}
+.modal-box h3{margin-bottom:1rem}
+.modal-box label{display:block;font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:4px;margin-top:.75rem}
+.modal-box input,.modal-box textarea,.modal-box select{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text)}
+.modal-box textarea{resize:vertical;min-height:70px}
+.modal-actions{display:flex;gap:10px;margin-top:1.5rem;justify-content:flex-end;flex-wrap:wrap}
+.modal-actions button{padding:10px 20px;border-radius:6px;border:none;cursor:pointer;font-weight:bold}
+.btn-cancel{background:var(--border);color:var(--text)}
+.btn-generate{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1rem}
+.plan-card{background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s}
+.plan-card:hover{border-color:var(--primary);transform:translateY(-2px)}
+.plan-card.current{border-color:var(--success);background:#d1fae5}
+.plan-card h4{font-size:1.2rem;margin-bottom:.5rem}
+.plan-price{font-size:1.8rem;font-weight:bold;color:var(--primary);margin:.5rem 0}
+.plan-price small{font-size:.8rem;color:var(--text-muted)}
+.plan-features{list-style:none;text-align:left;margin:1rem 0;font-size:13px}
+.plan-features li{padding:4px 0;padding-left:20px;position:relative}
+.plan-features li:before{content:'✓';position:absolute;left:0;color:var(--success);font-weight:bold}
+.progress-indicator{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--surface);padding:12px 24px;border-radius:8px;box-shadow:0 4px 12px var(--shadow);z-index:200;display:none;align-items:center;gap:12px;font-size:14px;border:1px solid var(--border)}
+.progress-indicator.show{display:flex}
+.spinner{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px;overflow-x:auto;display:block}
+.admin-table th,.admin-table td{padding:8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.admin-table th{background:var(--surface-2);font-weight:bold}
+.admin-table button{padding:4px 8px;border:none;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px}
+.payment-methods{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.payment-method{padding:1.5rem;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;transition:all .2s}
+.payment-method:hover{border-color:var(--primary)}
+.payment-method.selected{border-color:var(--success);background:#d1fae5}
+.payment-method h4{margin-bottom:.5rem}
+.pix-qr{text-align:center;padding:1rem;background:var(--surface-2);border-radius:8px;margin:1rem 0}
+</style>
+</head>
+<body data-theme="light">
+
+<div id="screen-login" class="screen auth-screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img id="login-logo" src="" alt="" style="display:none">
+      <h2 id="login-title">MindMap AI</h2>
+    </div>
+    <div id="login-error" class="auth-error"></div>
+    <input type="email" id="login-email" placeholder="E-mail">
+    <input type="password" id="login-password" placeholder="Senha">
+    <button onclick="fazerLogin()">Entrar</button>
+    <div class="auth-switch">Não tem conta? <a onclick="mostrarCadastro()">Cadastre-se</a></div>
+  </div>
+</div>
+
+<div id="screen-cadastro" class="screen auth-screen">
+  <div class="auth-box">
+    <h2 id="cadastro-title">Criar conta</h2>
+    <div id="cadastro-error" class="auth-error"></div>
+    <div id="cadastro-success" class="auth-success"></div>
+    <input type="text" id="cadastro-nome" placeholder="Nome completo">
+    <input type="email" id="cadastro-email" placeholder="E-mail">
+    <input type="password" id="cadastro-password" placeholder="Senha (mín. 6 caracteres)">
+    <select id="cadastro-plano">
+      <option value="free">Plano Free (gratuito)</option>
+      <option value="pro">Plano Pro</option>
+    </select>
+    <button onclick="fazerCadastro()">Criar conta</button>
+    <div class="auth-switch">Já tem conta? <a onclick="mostrarLogin()">Fazer login</a></div>
+  </div>
+</div>
+
+<div id="screen-dashboard" class="screen">
+  <div class="dashboard-header">
+    <h1><img id="dash-logo" src="" alt="" style="display:none"><span id="dash-title">MindMap AI</span></h1>
+    <div class="header-actions">
+      <span class="user-info" id="user-info"></span>
+      <button onclick="abrirPlanos()">💎 Planos</button>
+      <button id="btn-admin-panel" class="btn-primary" onclick="toggleAdminPanel()" style="display:none">⚙️ Admin</button>
+      <button class="btn-danger" onclick="fazerLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="dashboard-content">
+    <div style="max-width:1400px;margin:0 auto 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <h2>📂 Meus Mapas</h2>
+      <button class="btn-primary" onclick="criarNovoMapa()" style="padding:10px 20px;border-radius:6px;border:none;cursor:pointer;font-weight:bold;">+ Novo Mapa</button>
+    </div>
+    <div id="maps-grid" class="maps-grid"></div>
+  </div>
+</div>
+
+<div id="screen-editor" class="screen">
+  <div class="editor-header">
+    <h1>
+      <button onclick="voltarDashboard()" style="background:none;border:none;cursor:pointer;font-size:20px;">←</button>
+      <span id="map-title">Mapa</span>
+    </h1>
+    <div class="header-actions">
+      <select id="bg-select" onchange="mudarFundo(this.value)">
+        <option value="grid">Fundo: Grade</option>
+        <option value="dots">Fundo: Pontos</option>
+        <option value="plain">Fundo: Liso</option>
+      </select>
+      <button onclick="toggleTema()">🌓 Tema</button>
+      <button onclick="salvarMapaAtual()">💾 Salvar</button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="tool-btn ai" onclick="abrirModalIA()">✨ Gerar IA</button>
+    <button class="tool-btn ai-2" onclick="analisarMapaComIA()">🔍 Analisar</button>
+    <button class="tool-btn ai-2" onclick="gerarDetalhesTodos()">🧠 Consultoria</button>
+    <button class="tool-btn" onclick="adicionarFilho()">+ Filho</button>
+    <button class="tool-btn" onclick="adicionarIrmao()">+ Irmão</button>
+    <button class="tool-btn" onclick="excluirNo()">🗑️</button>
+    <button class="tool-btn" onclick="centralizarNoRaiz()">🎯 Centralizar</button>
+    <button class="tool-btn export" onclick="exportarPDF()">📄</button>
+    <button class="tool-btn export" onclick="exportarPNG()">🖼️</button>
+    <button class="tool-btn export" onclick="exportarMarkdown()">📝</button>
+    <div class="zoom-controls">
+      <button onclick="zoomOut()">−</button>
+      <span class="zoom-level" id="zoom-level">100%</span>
+      <button onclick="zoomIn()">+</button>
+      <button onclick="zoomFit()">🔍</button>
+      <button onclick="zoomReset()">1:1</button>
+    </div>
+  </div>
+  <div id="canvas-container" class="canvas-container" data-bg="grid" onclick="desselecionar(event)">
+    <div id="canvas-wrapper" class="canvas-wrapper">
+      <svg id="connections" class="connections"></svg>
+      <div id="nodes-container" class="nodes-container"></div>
+    </div>
+  </div>
+</div>
+
+<div id="consulting-panel" class="consulting-panel">
+  <div class="panel-header">
+    <h2 id="panel-title">Detalhes</h2>
+    <button class="panel-close" onclick="fecharPainel()">×</button>
+  </div>
+  <div class="priority-selector">
+    <div class="priority-option" data-p="critica" onclick="alterarPrioridade('critica')">🔴</div>
+    <div class="priority-option" data-p="alta" onclick="alterarPrioridade('alta')">🟠</div>
+    <div class="priority-option" data-p="media" onclick="alterarPrioridade('media')">🟡</div>
+    <div class="priority-option" data-p="baixa" onclick="alterarPrioridade('baixa')">🟢</div>
+    <div class="priority-option" data-p="info" onclick="alterarPrioridade('info')">🔵</div>
+  </div>
+  <div class="panel-content" id="panel-content"></div>
+  <div class="panel-footer">
+    <button class="btn-primary" onclick="regenerarDetalhesCard()">🧠 Gerar IA</button>
+    <button class="btn-success" onclick="salvarEDetalhes()">💾 Salvar</button>
+  </div>
+</div>
+
+<div id="admin-panel" class="admin-panel">
+  <div class="admin-panel-header">
+    <h2>⚙️ Painel Admin</h2>
+    <button class="panel-close" onclick="toggleAdminPanel()" style="color:#fff;">×</button>
+  </div>
+  <div class="admin-panel-content"><div id="admin-menu"></div></div>
+</div>
+
+<div id="modal-ia" class="modal-overlay">
+  <div class="modal-box">
+    <h3>✨ Gerar Mapa com IA</h3>
+    <label>Provedor</label>
+    <input type="text" id="ia-provider-display" disabled>
+    <label>Objetivo</label>
+    <textarea id="ia-prompt" placeholder="Ex: Campanha WhatsApp clínica"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modal-ia')">Cancelar</button>
+      <button class="btn-generate" id="btn-gerar-ia" onclick="gerarComIA()">Gerar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-planos" class="modal-overlay">
+  <div class="modal-box">
+    <h3>💎 Escolha seu Plano</h3>
+    <div class="plans-grid" id="plans-grid"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modal-planos')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pagamento" class="modal-overlay">
+  <div class="modal-box">
+    <h3>💳 Finalizar Pagamento</h3>
+    <p id="pagamento-info" style="margin-bottom:1rem;color:var(--text-muted);"></p>
+    <div class="payment-methods">
+      <div class="payment-method" onclick="selecionarPagamento('stripe')"><h4>💳 Cartão</h4></div>
+      <div class="payment-method" onclick="selecionarPagamento('pix')"><h4>📱 Pix</h4></div>
+    </div>
+    <div id="pagamento-detalhes"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modal-pagamento')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-admin" class="modal-overlay">
+  <div class="modal-box" style="max-width:800px;">
+    <h3 id="admin-modal-title">Admin</h3>
+    <div id="admin-modal-content"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modal-admin')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="progress-indicator" class="progress-indicator">
+  <div class="spinner"></div>
+  <span id="progress-text">Processando...</span>
+</div>
+
+<script>
+console.log('✅ MindMap AI carregado');
+
+const MASTER_EMAIL='master@mindmap.com';
+const MASTER_PASSWORD='master123';
+const MOEDAS={pt:{codigo:'BRL',simbolo:'R$',taxa:1},en:{codigo:'USD',simbolo:'$',taxa:0.20},es:{codigo:'EUR',simbolo:'€',taxa:0.18}};
+
+let state={
+  currentUser:null,currentMap:null,maps:[],users:[],plans:[],
+  settings:{productName:'MindMap AI',logo:'',favicon:'',aiProvider:'groq',aiModel:'llama-3.3-70b-versatile',aiKey:'',stripeKey:'',pixKey:'',theme:'light',idioma:'pt'},
+  editor:{nos:[],proximoId:2,idSelecionado:'1',idPainelAberto:null,zoom:1}
+};
+
+function formatarPreco(v){const m=MOEDAS[state.settings.idioma]||MOEDAS.pt;return `${m.simbolo} ${(v*m.taxa).toFixed(2)}`}
+function detectarIdioma(){const l=navigator.language||navigator.userLanguage;if(l.startsWith('en'))return'en';if(l.startsWith('es'))return'es';return'pt'}
+
+function carregarDados(){
+  try{
+    state.users=JSON.parse(localStorage.getItem('mm_users')||'[]');
+    state.plans=JSON.parse(localStorage.getItem('mm_plans')||'null')||[
+      {id:'free',nome:'Free',preco:0,mapas:3,ia:10,ativo:true,features:['3 mapas','10 gerações IA/mês','Exportação básica']},
+      {id:'pro',nome:'Pro',preco:39,mapas:999,ia:999,ativo:true,features:['Mapas ilimitados','IA ilimitada','PDF/PNG/MD','Consultoria IA','Análise inteligente']},
+      {id:'business',nome:'Business',preco:99,mapas:999,ia:999,ativo:true,features:['Tudo do Pro','Colaboração','Templates personalizados','Suporte prioritário']}
+    ];
+    state.settings={...state.settings,...JSON.parse(localStorage.getItem('mm_settings')||'{}')};
+    if(!state.settings.idioma){state.settings.idioma=detectarIdioma();salvarSettings()}
+    if(!state.users.find(u=>u.email===MASTER_EMAIL)){
+      state.users.push({id:'master_'+Date.now(),nome:'Master Admin',email:MASTER_EMAIL,password:MASTER_PASSWORD,tipo:'master',plano:'business',dataCriacao:new Date().toISOString(),ativo:true,usoIA:{mes:new Date().toISOString().substring(0,7),quantidade:0}});
+      salvarUsuarios();
+    }
+    state.users.forEach(u=>{if(!u.usoIA)u.usoIA={mes:new Date().toISOString().substring(0,7),quantidade:0}});
+    salvarUsuarios();
+  }catch(e){console.error('Erro:',e)}
+}
+
+function salvarUsuarios(){localStorage.setItem('mm_users',JSON.stringify(state.users))}
+function salvarPlanos(){localStorage.setItem('mm_plans',JSON.stringify(state.plans))}
+function salvarSettings(){localStorage.setItem('mm_settings',JSON.stringify(state.settings))}
+function carregarMapasUsuario(){if(!state.currentUser)return;state.maps=JSON.parse(localStorage.getItem('mm_maps_'+state.currentUser.id)||'[]')}
+function salvarMapasUsuario(){if(!state.currentUser)return;localStorage.setItem('mm_maps_'+state.currentUser.id,JSON.stringify(state.maps))}
+
+function mostrarScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function mostrarLogin(){mostrarScreen('screen-login')}
+function mostrarCadastro(){mostrarScreen('screen-cadastro')}
+
+function fazerLogin(){
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const senha=document.getElementById('login-password').value;
+  const err=document.getElementById('login-error');
+  err.style.display='none';
+  if(!email||!senha){err.innerText='Preencha e-mail e senha';err.style.display='block';return}
+  const user=state.users.find(u=>u.email.toLowerCase()===email&&u.password===senha);
+  if(!user){err.innerText='E-mail ou senha incorretos';err.style.display='block';return}
+  if(!user.ativo){err.innerText='Conta bloqueada.';err.style.display='block';return}
+  state.currentUser=user;
+  localStorage.setItem('mm_session',user.id);
+  carregarMapasUsuario();
+  aplicarConfiguracoes();
+  abrirDashboard();
+}
+
+function fazerCadastro(){
+  const nome=document.getElementById('cadastro-nome').value.trim();
+  const email=document.getElementById('cadastro-email').value.trim().toLowerCase();
+  const senha=document.getElementById('cadastro-password').value;
+  const plano=document.getElementById('cadastro-plano').value;
+  const err=document.getElementById('cadastro-error');
+  const suc=document.getElementById('cadastro-success');
+  err.style.display='none';suc.style.display='none';
+  if(!nome||!email||!senha){err.innerText='Preencha todos os campos';err.style.display='block';return}
+  if(senha.length<6){err.innerText='Senha mínima: 6 caracteres';err.style.display='block';return}
+  if(state.users.find(u=>u.email.toLowerCase()===email)){err.innerText='E-mail já cadastrado';err.style.display='block';return}
+  state.users.push({id:'user_'+Date.now(),nome,email,password:senha,tipo:'user',plano:plano==='pro'?'free':plano,planoPendente:plano==='pro'?'pro':null,dataCriacao:new Date().toISOString(),ativo:true,usoIA:{mes:new Date().toISOString().substring(0,7),quantidade:0}});
+  salvarUsuarios();
+  suc.innerText='Conta criada! Faça login.';
+  suc.style.display='block';
+  setTimeout(()=>{mostrarLogin();document.getElementById('login-email').value=email},1500);
+}
+
+function fazerLogout(){state.currentUser=null;state.currentMap=null;localStorage.removeItem('mm_session');document.getElementById('login-password').value='';mostrarLogin()}
+
+function verificarSessao(){
+  const sessionId=localStorage.getItem('mm_session');
+  if(sessionId){const user=state.users.find(u=>u.id===sessionId);if(user&&user.ativo){state.currentUser=user;carregarMapasUsuario();aplicarConfiguracoes();abrirDashboard();return true}}
+  return false;
+}
+
+function aplicarConfiguracoes(){
+  document.body.setAttribute('data-theme',state.settings.theme||'light');
+  document.getElementById('app-title').innerText=state.settings.productName;
+  document.getElementById('login-title').innerText=state.settings.productName;
+  document.getElementById('cadastro-title').innerText=state.settings.productName;
+  document.getElementById('dash-title').innerText=state.settings.productName;
+  if(state.settings.favicon)document.getElementById('app-favicon').href=state.settings.favicon;
+  if(state.settings.logo){['login-logo','dash-logo'].forEach(id=>{const img=document.getElementById(id);img.src=state.settings.logo;img.style.display='block'})}
+}
+
+function toggleTema(){state.settings.theme=state.settings.theme==='light'?'dark':'light';document.body.setAttribute('data-theme',state.settings.theme);salvarSettings()}
+function mudarFundo(tipo){document.getElementById('canvas-container').setAttribute('data-bg',tipo)}
+
+function abrirDashboard(){
+  mostrarScreen('screen-dashboard');
+  const user=state.currentUser;
+  const plano=state.plans.find(p=>p.id===user.plano);
+  const mesAtual=new Date().toISOString().substring(0,7);
+  if(!user.usoIA||user.usoIA.mes!==mesAtual){user.usoIA={mes:mesAtual,quantidade:0};const idx=state.users.findIndex(u=>u.id===user.id);if(idx>=0)state.users[idx].usoIA=user.usoIA;salvarUsuarios()}
+  const usoIA=user.usoIA?.quantidade||0;
+  const limiteIA=plano?.ia===999?'∞':plano?.ia||0;
+  document.getElementById('user-info').innerHTML=`${user.nome} <span class="badge badge-${user.tipo}">${user.tipo.toUpperCase()}</span> <span class="badge badge-plan">${plano?.nome||'Free'}</span> <span style="font-size:11px;color:var(--text-muted);">IA: ${usoIA}/${limiteIA}</span>`;
+  document.getElementById('btn-admin-panel').style.display=(user.tipo==='master'||user.tipo==='admin')?'inline-block':'none';
+  renderizarDashboard();
+}
+
+function renderizarDashboard(){
+  const grid=document.getElementById('maps-grid');
+  if(state.maps.length===0){grid.innerHTML='<div class="empty-state"><h2>📭 Nenhum mapa ainda</h2><p>Clique em "+ Novo Mapa"!</p></div>';return}
+  grid.innerHTML=state.maps.map(m=>`<div class="map-card"><h3>${m.nome}</h3><div class="map-card-info">📅 ${new Date(m.dataModificacao).toLocaleDateString('pt-BR')}<br>📊 ${m.nos.length} tópicos</div><div class="map-card-actions"><button class="btn-primary" onclick="abrirMapa('${m.id}')">Abrir</button><button style="background:var(--warning);color:#fff;" onclick="renomearMapa('${m.id}')">Renomear</button><button class="btn-danger" onclick="excluirMapa('${m.id}')">Excluir</button></div></div>`).join('');
+}
+
+function criarNovoMapa(){
+  const plano=state.plans.find(p=>p.id===state.currentUser.plano);
+  if(state.maps.length>=(plano?.mapas||3)){alert(`Limite: ${plano.mapas} mapas. Faça upgrade!`);abrirPlanos();return}
+  const nome=prompt('Nome do mapa:','Meu Mapa Mental');
+  if(!nome)return;
+  const novo={id:'map_'+Date.now(),nome,dataCriacao:new Date().toISOString(),dataModificacao:new Date().toISOString(),nos:[{id:'1',texto:'Ideia Central',x:2350,y:2450,paiId:null,prioridade:'sem',detalhes:null}]};
+  state.maps.push(novo);salvarMapasUsuario();abrirMapa(novo.id);
+}
+
+function abrirMapa(id){
+  const mapa=state.maps.find(m=>m.id===id);if(!mapa)return;
+  state.currentMap=mapa;
+  state.editor.nos=JSON.parse(JSON.stringify(mapa.nos));
+  state.editor.proximoId=Math.max(...state.editor.nos.map(n=>parseInt(n.id)))+1;
+  state.editor.idSelecionado='1';
+  document.getElementById('map-title').innerText=mapa.nome;
+  mostrarScreen('screen-editor');zoomReset();renderizar();centralizarNoRaiz();
+}
+
+function voltarDashboard(){if(state.currentMap&&confirm('Salvar alterações?'))salvarMapaAtual(true);state.currentMap=null;fecharPainel();abrirDashboard()}
+function renomearMapa(id){const mapa=state.maps.find(m=>m.id===id);if(!mapa)return;const nome=prompt('Novo nome:',mapa.nome);if(!nome)return;mapa.nome=nome;mapa.dataModificacao=new Date().toISOString();salvarMapasUsuario();renderizarDashboard()}
+function excluirMapa(id){if(!confirm('Excluir permanentemente?'))return;state.maps=state.maps.filter(m=>m.id!==id);salvarMapasUsuario();renderizarDashboard()}
+
+function salvarMapaAtual(silencioso=false){
+  if(!state.currentMap)return;
+  state.currentMap.nos=JSON.parse(JSON.stringify(state.editor.nos));
+  state.currentMap.dataModificacao=new Date().toISOString();
+  salvarMapasUsuario();
+  if(!silencioso){const btn=event?.target;if(btn){const o=btn.innerText;btn.innerText='✅ Salvo!';setTimeout(()=>btn.innerText=o,1500)}}
+}
+
+function aplicarZoom(){document.getElementById('canvas-wrapper').style.transform=`scale(${state.editor.zoom})`;document.getElementById('zoom-level').innerText=Math.round(state.editor.zoom*100)+'%'}
+function zoomIn(){state.editor.zoom=Math.min(3,state.editor.zoom+0.1);aplicarZoom()}
+function zoomOut(){state.editor.zoom=Math.max(0.2,state.editor.zoom-0.1);aplicarZoom()}
+function zoomReset(){state.editor.zoom=1;aplicarZoom()}
+function zoomFit(){
+  if(state.editor.nos.length===0)return;
+  const c=document.getElementById('canvas-container');
+  const xs=state.editor.nos.map(n=>n.x),ys=state.editor.nos.map(n=>n.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs)+200;
+  const minY=Math.min(...ys),maxY=Math.max(...ys)+50;
+  state.editor.zoom=Math.min(c.clientWidth/(maxX-minX+200),c.clientHeight/(maxY-minY+200),1)*0.9;
+  aplicarZoom();
+  c.scrollTo({left:((minX+maxX)/2)*state.editor.zoom-c.clientWidth/2,top:((minY+maxY)/2)*state.editor.zoom-c.clientHeight/2,behavior:'smooth'});
+}
+function centralizarNoRaiz(){
+  const c=document.getElementById('canvas-container');
+  const raiz=state.editor.nos.find(n=>n.paiId===null);
+  if(raiz){state.editor.zoom=1;aplicarZoom();c.scrollTo({top:raiz.y-c.clientHeight/2+25,left:raiz.x-c.clientWidth/2+90,behavior:'smooth'})}
+}
+document.addEventListener('wheel',(e)=>{if(document.getElementById('screen-editor').classList.contains('active')&&e.ctrlKey){e.preventDefault();if(e.deltaY<0)zoomIn();else zoomOut()}},{passive:false});
+
+function calcNivel(id){let n=0,no=state.editor.nos.find(x=>x.id===id);while(no&&no.paiId){n++;no=state.editor.nos.find(x=>x.id===no.paiId)}return n}
+function calcProgresso(no){if(!no.detalhes?.checklist?.length)return null;const t=no.detalhes.checklist.length;const c=no.detalhes.checklist.filter(i=>i.concluido).length;return{total:t,concluidas:c,percentual:Math.round((c/t)*100)}}
+
+function renderizar(){
+  const cn=document.getElementById('nodes-container');
+  const svg=document.getElementById('connections');
+  cn.innerHTML='';svg.innerHTML='';
+  const nos=state.editor.nos;
+  nos.forEach(no=>{
+    if(no.paiId){
+      const pai=nos.find(n=>n.id===no.paiId);
+      if(pai){
+        const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+        const sx=pai.x+90,sy=pai.y+25,ex=no.x+90,ey=no.y+25,dx=ex-sx;
+        p.setAttribute('d',`M ${sx} ${sy} C ${sx+dx*0.5} ${sy}, ${ex-dx*0.5} ${ey}, ${ex} ${ey}`);
+        p.setAttribute('fill','none');
+        const cores={critica:'#ef4444',alta:'#f97316',media:'#eab308',baixa:'#22c55e',info:'#3b82f6'};
+        p.setAttribute('stroke',cores[no.prioridade]||'#cbd5e1');
+        p.setAttribute('stroke-width','2.5');p.setAttribute('opacity','0.6');
+        svg.appendChild(p);
+      }
+    }
+  });
+  nos.forEach(no=>{
+    const nivel=calcNivel(no.id);
+    const div=document.createElement('div');
+    div.className='node'+(no.id===state.editor.idSelecionado?' selected':'');
+    div.style.left=no.x+'px';div.style.top=no.y+'px';
+    div.dataset.id=no.id;div.dataset.level=nivel;div.dataset.p=no.prioridade||'sem';
+    div.onclick=(e)=>{if(e.target.classList.contains('drag-handle')||e.target.classList.contains('node-text'))return;if(nivel>0)abrirPainelConsultoria(no.id)};
+    const handle=document.createElement('div');
+    handle.className='drag-handle';handle.innerText='⋮⋮';
+    handle.onmousedown=(e)=>{
+      e.preventDefault();e.stopPropagation();
+      state.editor.idSelecionado=no.id;renderizar();
+      const container=document.getElementById('canvas-container');
+      const rect=container.getBoundingClientRect();
+      const isRaiz=nivel===0;
+      let offsets=[];
+      if(isRaiz){
+        const mx=(e.clientX-rect.left)/state.editor.zoom+container.scrollLeft/state.editor.zoom;
+        const my=(e.clientY-rect.top)/state.editor.zoom+container.scrollTop/state.editor.zoom;
+        offsets=nos.map(n=>({id:n.id,dx:n.x-mx,dy:n.y-my}));
+      }else{
+        const ox=((e.clientX-rect.left)/state.editor.zoom+container.scrollLeft/state.editor.zoom)-no.x;
+        const oy=((e.clientY-rect.top)/state.editor.zoom+container.scrollTop/state.editor.zoom)-no.y;
+        offsets=[{id:no.id,dx:-ox,dy:-oy}];
+      }
+      const onMove=(me)=>{
+        const r=container.getBoundingClientRect();
+        const mx=(me.clientX-r.left)/state.editor.zoom+container.scrollLeft/state.editor.zoom;
+        const my=(me.clientY-r.top)/state.editor.zoom+container.scrollTop/state.editor.zoom;
+        offsets.forEach(o=>{const n=nos.find(x=>x.id===o.id);if(n){n.x=mx+o.dx;n.y=my+o.dy}});
+        renderizar();
+      };
+      const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp)};
+      document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+    };
+    const content=document.createElement('div');content.className='node-content';
+    if(nivel>0&&no.prioridade&&no.prioridade!=='sem'){
+      const b=document.createElement('div');b.className='priority-badge';
+      const labels={critica:'🔴 Crítica',alta:'🟠 Alta',media:'🟡 Média',baixa:'🟢 Baixa',info:'🔵 Info'};
+      b.innerText=labels[no.prioridade];content.appendChild(b);
+    }
+    const prog=calcProgresso(no);
+    if(prog){const pb=document.createElement('div');pb.className='progress-badge';pb.innerText=prog.percentual+'%';content.appendChild(pb)}
+    const txt=document.createElement('div');
+    txt.className='node-text';txt.contentEditable=true;txt.innerText=no.texto;
+    txt.oninput=(e)=>no.texto=e.target.innerText;
+    txt.onmousedown=(e)=>{e.stopPropagation();state.editor.idSelecionado=no.id;renderizar()};
+    txt.onkeydown=(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();txt.blur()}};
+    content.appendChild(txt);
+    if(nivel>0){
+      const icon=document.createElement('div');
+      icon.className='info-icon'+(no.detalhes?' has-details':'');
+      icon.innerText='i';
+      icon.onclick=(e)=>{e.stopPropagation();abrirPainelConsultoria(no.id)};
+      div.appendChild(icon);
+    }
+    div.appendChild(handle);div.appendChild(content);cn.appendChild(div);
+  });
+}
+
+function desselecionar(e){if(e.target.id==='canvas-container'||e.target.id==='connections'||e.target.tagName==='svg'||e.target.tagName==='path'){state.editor.idSelecionado=null;renderizar()}}
+
+function adicionarFilho(){
+  if(!state.editor.idSelecionado){alert('Selecione um tópico');return}
+  const pai=state.editor.nos.find(n=>n.id===state.editor.idSelecionado);
+  const filhos=state.editor.nos.filter(n=>n.paiId===pai.id);
+  const id=String(state.editor.proximoId++);
+  state.editor.nos.push({id,texto:'Novo Tópico',x:pai.x+280+filhos.length*20,y:pai.y+filhos.length*90-filhos.length*20,paiId:pai.id,prioridade:'media',detalhes:null});
+  state.editor.idSelecionado=id;renderizar();
+}
+
+function adicionarIrmao(){
+  if(!state.editor.idSelecionado){alert('Selecione um tópico');return}
+  const no=state.editor.nos.find(n=>n.id===state.editor.idSelecionado);
+  if(!no.paiId){alert('Não pode adicionar irmão ao nó raiz');return}
+  const pai=state.editor.nos.find(n=>n.id===no.paiId);
+  const irmaos=state.editor.nos.filter(n=>n.paiId===pai.id);
+  const id=String(state.editor.proximoId++);
+  state.editor.nos.push({id,texto:'Novo Tópico',x:no.x,y:no.y+90+irmaos.length*10,paiId:pai.id,prioridade:'media',detalhes:null});
+  state.editor.idSelecionado=id;renderizar();
+}
+
+function excluirNo(){
+  if(!state.editor.idSelecionado||state.editor.idSelecionado==='1'){alert('Selecione um nó não-raiz');return}
+  if(!confirm('Excluir este tópico e filhos?'))return;
+  const ex=[state.editor.idSelecionado];
+  let i=0;
+  while(i<ex.length){state.editor.nos.filter(n=>n.paiId===ex[i]).forEach(f=>ex.push(f.id));i++}
+  state.editor.nos=state.editor.nos.filter(n=>!ex.includes(n.id));
+  state.editor.idSelecionado='1';renderizar();
+}
+
+function abrirPainelConsultoria(id){
+  const no=state.editor.nos.find(n=>n.id===id);
+  if(!no||!no.paiId)return;
+  state.editor.idPainelAberto=id;state.editor.idSelecionado=id;
+  renderizar();
+  document.getElementById('panel-title').innerText=no.texto;
+  document.querySelectorAll('.priority-option').forEach(o=>o.classList.toggle('active',o.dataset.p===(no.prioridade||'sem')));
+  renderizarPainel(no);
+  document.getElementById('consulting-panel').classList.add('open');
+}
+
+function renderizarPainel(no){
+  const c=document.getElementById('panel-content');
+  const d=no.detalhes||{};
+  const tem=d.descricao||d.porque||d.passos?.length||d.dicas?.length;
+  c.innerHTML=`
+    ${!tem?`<div style="background:#fef3c7;border:1px solid #fcd34d;padding:1rem;border-radius:8px;margin-bottom:1rem;color:#92400e;font-size:13px;">💡 <strong>Sem consultoria.</strong><br>Clique em "🧠 Gerar IA".</div>`:''}
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">📋 Descrição</div><div class="section-toggle">▼</div></div><div class="section-body"><textarea id="det-desc">${d.descricao||''}</textarea></div></div>
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">💡 Importância</div><div class="section-toggle">▼</div></div><div class="section-body"><textarea id="det-porq">${d.porque||''}</textarea></div></div>
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">✅ Passos</div><div class="section-toggle">▼</div></div><div class="section-body"><textarea id="det-pass" style="min-height:120px;">${(d.passos||[]).join('\n')}</textarea></div></div>
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">🎯 Dicas</div><div class="section-toggle">▼</div></div><div class="section-body"><textarea id="det-dicas" style="min-height:100px;">${(d.dicas||[]).join('\n')}</textarea></div></div>
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">⚠️ Erros</div><div class="section-toggle">▼</div></div><div class="section-body"><textarea id="det-erros" style="min-height:100px;">${(d.erros||[]).join('\n')}</textarea></div></div>
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">📊 Indicadores</div><div class="section-toggle">▼</div></div><div class="section-body"><textarea id="det-ind" style="min-height:100px;">${(d.indicadores||[]).join('\n')}</textarea></div></div>
+    <div class="section"><div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="section-title">✅ Checklist</div><div class="section-toggle">▼</div></div><div class="section-body">
+      <div>${(d.checklist||[]).map((it,i)=>`<div class="checklist-item ${it.concluido?'completed':''}"><input type="checkbox" ${it.concluido?'checked':''} onchange="toggleCheck(${i})"><span>${it.texto}</span><button onclick="remCheck(${i})">×</button></div>`).join('')}</div>
+      <div class="add-checklist"><input type="text" id="new-check" placeholder="Nova tarefa..."><button onclick="addCheck()">Adicionar</button></div>
+    </div></div>
+  `;
+}
+
+function fecharPainel(){document.getElementById('consulting-panel').classList.remove('open');state.editor.idPainelAberto=null}
+function alterarPrioridade(p){if(!state.editor.idPainelAberto)return;const no=state.editor.nos.find(n=>n.id===state.editor.idPainelAberto);if(!no)return;no.prioridade=p;document.querySelectorAll('.priority-option').forEach(o=>o.classList.toggle('active',o.dataset.p===p));renderizar()}
+function toggleCheck(i){const no=state.editor.nos.find(n=>n.id===state.editor.idPainelAberto);if(!no?.detalhes?.checklist)return;no.detalhes.checklist[i].concluido=!no.detalhes.checklist[i].concluido;renderizarPainel(no);renderizar()}
+function remCheck(i){const no=state.editor.nos.find(n=>n.id===state.editor.idPainelAberto);if(!no?.detalhes?.checklist)return;no.detalhes.checklist.splice(i,1);renderizarPainel(no);renderizar()}
+function addCheck(){const inp=document.getElementById('new-check');const txt=inp.value.trim();if(!txt)return;const no=state.editor.nos.find(n=>n.id===state.editor.idPainelAberto);if(!no)return;if(!no.detalhes)no.detalhes={};if(!no.detalhes.checklist)no.detalhes.checklist=[];no.detalhes.checklist.push({texto:txt,concluido:false});inp.value='';renderizarPainel(no);renderizar()}
+function salvarEDetalhes(){
+  if(!state.editor.idPainelAberto)return;
+  const no=state.editor.nos.find(n=>n.id===state.editor.idPainelAberto);if(!no)return;
+  const cl=no.detalhes?.checklist||[];
+  no.detalhes={...no.detalhes,descricao:document.getElementById('det-desc').value,porque:document.getElementById('det-porq').value,passos:document.getElementById('det-pass').value.split('\n').filter(l=>l.trim()),dicas:document.getElementById('det-dicas').value.split('\n').filter(l=>l.trim()),erros:document.getElementById('det-erros').value.split('\n').filter(l=>l.trim()),indicadores:document.getElementById('det-ind').value.split('\n').filter(l=>l.trim()),checklist:cl};
+  salvarMapaAtual(true);renderizar();alert('✅ Detalhes salvos!');
+}
+
+function verificarLimiteIA(){
+  const user=state.currentUser;const plano=state.plans.find(p=>p.id===user.plano);
+  if(!plano)return{permitido:false,motivo:'Plano não encontrado'};
+  if(plano.ia===999)return{permitido:true};
+  const mesAtual=new Date().toISOString().substring(0,7);
+  if(!user.usoIA||user.usoIA.mes!==mesAtual){user.usoIA={mes:mesAtual,quantidade:0};salvarUsuarios()}
+  if(user.usoIA.quantidade>=plano.ia)return{permitido:false,motivo:`Limite: ${plano.ia} gerações/mês. Usou ${user.usoIA.quantidade}.`};
+  return{permitido:true};
+}
+function registrarUsoIA(){const user=state.currentUser;if(!user.usoIA)user.usoIA={mes:new Date().toISOString().substring(0,7),quantidade:0};user.usoIA.quantidade++;const idx=state.users.findIndex(u=>u.id===user.id);if(idx>=0)state.users[idx].usoIA=user.usoIA;salvarUsuarios()}
+
+function exportarPDF(){const{jsPDF}=window.jspdf;const doc=new jsPDF();doc.setFontSize(20);doc.text(state.currentMap.nome,20,20);let y=40;state.editor.nos.forEach(no=>{if(y>270){doc.addPage();y=20}const n=calcNivel(no.id);doc.setFontSize(14-n);doc.text(no.texto,20+n*10,y);y+=8;if(no.detalhes?.descricao){doc.setFontSize(10);doc.text(no.detalhes.descricao.substring(0,100),25+n*10,y);y+=6}y+=5});doc.save(state.currentMap.nome+'.pdf')}
+function exportarPNG(){html2canvas(document.getElementById('canvas-wrapper'),{scale:2}).then(c=>{const a=document.createElement('a');a.download=state.currentMap.nome+'.png';a.href=c.toDataURL();a.click()})}
+function exportarMarkdown(){let md=`# ${state.currentMap.nome}\n\n`;function rec(id,n=0){const no=state.editor.nos.find(x=>x.id===id);if(!no)return;md+=`${'#'.repeat(n+1)} ${no.texto}\n\n`;if(no.detalhes?.descricao)md+=no.detalhes.descricao+'\n\n';if(no.detalhes?.passos?.length){md+='**Passos:**\n';no.detalhes.passos.forEach(p=>md+=`- ${p}\n`);md+='\n'}state.editor.nos.filter(x=>x.paiId===id).forEach(f=>rec(f.id,n+1))}rec('1');const b=new Blob([md],{type:'text/markdown'});const a=document.createElement('a');a.download=state.currentMap.nome+'.md';a.href=URL.createObjectURL(b);a.click()}
+
+function abrirModalIA(){const providers={groq:'Groq (Llama)',openai:'OpenAI (GPT)',gemini:'Google Gemini',grok:'xAI Grok'};document.getElementById('ia-provider-display').value=providers[state.settings.aiProvider]+' - '+state.settings.aiModel;document.getElementById('modal-ia').classList.add('active');document.getElementById('ia-prompt').focus()}
+function fecharModal(id){document.getElementById(id).classList.remove('active')}
+function mostrarProgresso(t){document.getElementById('progress-text').innerText=t;document.getElementById('progress-indicator').classList.add('show')}
+function esconderProgresso(){document.getElementById('progress-indicator').classList.remove('show')}
+
+function extrairJSON(txt){
+  txt=txt.replace(/^```json\s*/i,'').replace(/```\s*$/i,'').trim();
+  try{return JSON.parse(txt)}catch(e){}
+  txt=txt.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,'');
+  const m1=txt.match(/\[[\s\S]*\]/);if(m1)try{return JSON.parse(m1[0])}catch(e){}
+  const m2=txt.match(/\{[\s\S]*\}/);if(m2)try{return JSON.parse(m2[0])}catch(e){}
+  throw new Error('JSON inválido. Tente prompt mais simples.');
+}
+
+async function chamarIA(sys,usr,maxT=2000){
+  const p=state.settings.aiProvider,k=state.settings.aiKey,m=state.settings.aiModel;
+  if(!k)throw new Error('Chave de IA não configurada.');
+  if(p==='gemini'){
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}`;
+    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:sys+'\n\n'+usr}]}],generationConfig:{temperature:0.5,maxOutputTokens:maxT}})});
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'Erro Gemini')}
+    const data=await resp.json();return extrairJSON(data.candidates[0].content.parts[0].text);
+  }else{
+    const urls={groq:'https://api.groq.com/openai/v1/chat/completions',openai:'https://api.openai.com/v1/chat/completions',grok:'https://api.x.ai/v1/chat/completions'};
+    const resp=await fetch(urls[p],{method:'POST',headers:{'Authorization':`Bearer ${k}`,'Content-Type':'application/json'},body:JSON.stringify({model:m,messages:[{role:'system',content:sys},{role:'user',content:usr}],temperature:0.5,max_tokens:maxT})});
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'Erro API')}
+    const data=await resp.json();return extrairJSON(data.choices[0].message.content);
+  }
+}
+
+async function gerarComIA(){
+  const limite=verificarLimiteIA();
+  if(!limite.permitido){alert('❌ '+limite.motivo);abrirPlanos();return}
+  const prompt=document.getElementById('ia-prompt').value.trim();
+  const btn=document.getElementById('btn-gerar-ia');
+  if(!prompt){alert('Descreva o objetivo');return}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  mostrarProgresso('Gerando...');
+  const sys=`Mind map generator. ONLY JSON array. Each object: "id", "texto" (Portuguese, max 4 words), "x", "y", "paiId", "prioridade" ("critica","alta","media","baixa","info"). Root: id=1, x=2350, y=2450, paiId=null. Children: x=2700 or x=2000. 10-15 nodes.`;
+  try{
+    const est=await chamarIA(sys,`Objective: ${prompt}`,2000);
+    if(!Array.isArray(est))throw new Error('Formato inválido');
+    state.editor.nos=est.map(n=>({id:String(n.id),texto:String(n.texto||'Tópico').substring(0,50),x:typeof n.x==='number'?n.x:2350,y:typeof n.y==='number'?n.y:2450,paiId:n.paiId===null?null:String(n.paiId),prioridade:['critica','alta','media','baixa','info','sem'].includes(n.prioridade)?n.prioridade:'media',detalhes:null}));
+    state.editor.proximoId=Math.max(...state.editor.nos.map(n=>parseInt(n.id)))+1;
+    state.editor.idSelecionado='1';
+    fecharModal('modal-ia');esconderProgresso();
+    registrarUsoIA();renderizar();zoomFit();
+    alert(`✅ Gerado! (${state.editor.nos.length} tópicos)`);
+  }catch(e){esconderProgresso();alert('❌ '+e.message)}
+  finally{btn.disabled=false;btn.innerText='Gerar'}
+}
+
+async function gerarDetalhesTodos(){
+  const limite=verificarLimiteIA();
+  if(!limite.permitido){alert('❌ '+limite.motivo);abrirPlanos();return}
+  const sem=state.editor.nos.filter(n=>n.paiId&&!n.detalhes);
+  if(sem.length===0){alert('Todos já têm consultoria');return}
+  if(!confirm(`Gerar para ${sem.length} cards?`))return;
+  const btn=event.target;const orig=btn.innerText;
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  let count=0;
+  const lotes=[];
+  for(let i=0;i<sem.length;i+=3)lotes.push(sem.slice(i,i+3));
+  for(const lote of lotes){
+    mostrarProgresso(`Gerando... (${count}/${sem.length})`);
+    const sys=`Consultant. ONLY JSON. Format: {"id":{"descricao":"...","porque":"...","passos":[...],"dicas":[...],"erros":[...],"indicadores":[...]}}. Short strings. Portuguese.`;
+    const usr=`Nodes: ${JSON.stringify(lote.map(n=>({id:n.id,texto:n.texto})))}`;
+    try{const res=await chamarIA(sys,usr,2000);lote.forEach(n=>{if(res[n.id]){n.detalhes=res[n.id];count++}});renderizar()}catch(e){console.error(e)}
+  }
+  esconderProgresso();btn.disabled=false;btn.innerText=orig;
+  registrarUsoIA();
+  alert(`✅ Consultoria gerada para ${count} cards!`);
+}
+
+async function regenerarDetalhesCard(){
+  if(!state.editor.idPainelAberto)return;
+  const limite=verificarLimiteIA();
+  if(!limite.permitido){alert('❌ '+limite.motivo);abrirPlanos();return}
+  const no=state.editor.nos.find(n=>n.id===state.editor.idPainelAberto);if(!no)return;
+  const btn=event.target;const orig=btn.innerText;
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  mostrarProgresso('Gerando...');
+  const sys=`Consultant. ONLY JSON. Format: {"descricao":"...","porque":"...","passos":[...],"dicas":[...],"erros":[...],"indicadores":[...]}. Short strings. Portuguese.`;
+  try{
+    const res=await chamarIA(sys,`Topic: "${no.texto}". Generate.`,1500);
+    no.detalhes=res;renderizarPainel(no);renderizar();
+    esconderProgresso();registrarUsoIA();
+    alert('✅ Consultoria gerada!');
+  }catch(e){esconderProgresso();alert('❌ '+e.message)}
+  finally{btn.disabled=false;btn.innerText=orig}
+}
+
+async function analisarMapaComIA(){
+  const limite=verificarLimiteIA();
+  if(!limite.permitido){alert('❌ '+limite.motivo);abrirPlanos();return}
+  if(state.editor.nos.length<3){alert('Mapa muito pequeno');return}
+  mostrarProgresso('Analisando...');
+  document.getElementById('modal-admin').classList.add('active');
+  document.getElementById('admin-modal-title').innerText='🔍 Análise';
+  document.getElementById('admin-modal-content').innerHTML='<p>Analisando...</p>';
+  const sys=`Analyst. ONLY JSON. Format: {"pontosCriticos":[...],"itensFaltando":[...],"sugestoes":[...]}. Arrays 3-5 items. Portuguese.`;
+  const usr=`Map: ${JSON.stringify(state.editor.nos.map(n=>({id:n.id,texto:n.texto,paiId:n.paiId,prioridade:n.prioridade})))}`;
+  try{
+    const res=await chamarIA(sys,usr,1500);
+    document.getElementById('admin-modal-content').innerHTML=`
+      <div style="background:#fee2e2;padding:1rem;border-radius:8px;margin-bottom:1rem;"><h4>🔴 Críticos</h4><ul>${(res.pontosCriticos||[]).map(i=>`<li>${i}</li>`).join('')}</ul></div>
+      <div style="background:#fef3c7;padding:1rem;border-radius:8px;margin-bottom:1rem;"><h4>⚠️ Faltando</h4><ul>${(res.itensFaltando||[]).map(i=>`<li>${i}</li>`).join('')}</ul></div>
+      <div style="background:#d1fae5;padding:1rem;border-radius:8px;"><h4>💡 Sugestões</h4><ul>${(res.sugestoes||[]).map(i=>`<li>${i}</li>`).join('')}</ul></div>
+    `;
+    registrarUsoIA();
+  }catch(e){document.getElementById('admin-modal-content').innerHTML=`<p style="color:var(--danger);">❌ ${e.message}</p>`}
+  finally{esconderProgresso()}
+}
+
+function abrirPlanos(){
+  const grid=document.getElementById('plans-grid');
+  const planoAtual=state.currentUser.plano;
+  const planosAtivos=state.plans.filter(p=>p.ativo!==false);
+  grid.innerHTML=planosAtivos.map(p=>`<div class="plan-card ${p.id===planoAtual?'current':''}" onclick="selecionarPlano('${p.id}')"><h4>${p.nome} ${p.id===planoAtual?'(Atual)':''}</h4><div class="plan-price">${p.preco===0?'Grátis':formatarPreco(p.preco)}<small>${p.preco>0?'/mês':''}</small></div><ul class="plan-features">${p.features.map(f=>`<li>${f}</li>`).join('')}</ul></div>`).join('');
+  document.getElementById('modal-planos').classList.add('active');
+}
+
+function selecionarPlano(id){
+  const plano=state.plans.find(p=>p.id===id);if(!plano)return;
+  if(id===state.currentUser.plano){alert('Você já está neste plano');return}
+  if(plano.preco===0){state.currentUser.plano=id;const idx=state.users.findIndex(u=>u.id===state.currentUser.id);state.users[idx].plano=id;salvarUsuarios();fecharModal('modal-planos');abrirDashboard();alert('✅ Plano alterado!');return}
+  fecharModal('modal-planos');abrirPagamento(plano);
+}
+
+let planoSelecionado=null,metodoPagamento=null;
+function abrirPagamento(plano){
+  planoSelecionado=plano;metodoPagamento=null;
+  document.getElementById('pagamento-info').innerHTML=`Plano ${plano.nome} - <strong>${formatarPreco(plano.preco)}/mês</strong>`;
+  document.getElementById('pagamento-detalhes').innerHTML='';
+  document.querySelectorAll('.payment-method').forEach(m=>m.classList.remove('selected'));
+  document.getElementById('modal-pagamento').classList.add('active');
+}
+
+function selecionarPagamento(metodo){
+  metodoPagamento=metodo;
+  document.querySelectorAll('.payment-method').forEach(m=>m.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  const det=document.getElementById('pagamento-detalhes');
+  if(metodo==='stripe'){
+    det.innerHTML=`<div style="background:var(--surface-2);padding:1rem;border-radius:8px;margin-top:1rem;"><p><strong>💳 Cartão</strong></p><p style="font-size:13px;color:var(--text-muted);">Em produção: Stripe Checkout.</p><p><strong>Valor:</strong> ${formatarPreco(planoSelecionado.preco)}</p><button class="btn-primary" onclick="simularPagamentoStripe()" style="padding:10px;border-radius:6px;border:none;cursor:pointer;width:100%;">Simular Aprovado</button></div>`;
+  }else if(metodo==='pix'){
+    det.innerHTML=`<div class="pix-qr"><p><strong>📱 Pix</strong></p><div style="width:200px;height:200px;background:#fff;margin:1rem auto;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);font-size:60px;">📱</div><p><strong>Valor:</strong> ${formatarPreco(planoSelecionado.preco)}</p><button class="btn-success" onclick="simularPagamentoPix()" style="margin-top:1rem;padding:10px;border-radius:6px;border:none;cursor:pointer;width:100%;">Simular Pago</button></div>`;
+  }
+}
+
+function simularPagamentoStripe(){liberarPlano();fecharModal('modal-pagamento');alert('✅ Aprovado!')}
+function simularPagamentoPix(){liberarPlano();fecharModal('modal-pagamento');alert('✅ Pix confirmado!')}
+function liberarPlano(){state.currentUser.plano=planoSelecionado.id;const idx=state.users.findIndex(u=>u.id===state.currentUser.id);state.users[idx].plano=planoSelecionado.id;state.users[idx].planoPendente=null;salvarUsuarios();abrirDashboard()}
+
+function toggleAdminPanel(){const panel=document.getElementById('admin-panel');if(panel.classList.contains('open'))panel.classList.remove('open');else{renderizarMenuAdmin();panel.classList.add('open')}}
+
+function renderizarMenuAdmin(){
+  const menu=document.getElementById('admin-menu');
+  const isMaster=state.currentUser.tipo==='master';
+  let html='<div class="admin-section"><h3>👥 Gestão</h3>';
+  html+=`<div class="admin-item" onclick="adminUsuarios()">Usuários <small>${state.users.length}</small></div>`;
+  html+='<div class="admin-item" onclick="adminTodosMapas()">Todos os Mapas</div></div>';
+  html+='<div class="admin-section"><h3>💎 Comercial</h3>';
+  html+='<div class="admin-item" onclick="adminPlanos()">Planos e Preços</div>';
+  html+='<div class="admin-item" onclick="adminPagamentos()">Pagamentos</div></div>';
+  if(isMaster){
+    html+='<div class="admin-section"><h3>🔐 Master</h3>';
+    html+='<div class="admin-item" onclick="adminIA()">Configurar IA</div>';
+    html+='<div class="admin-item" onclick="adminPagamentosConfig()">Chaves Pagamento</div>';
+    html+='<div class="admin-item" onclick="adminMarca()">Marca do Produto</div>';
+    html+='<div class="admin-item" onclick="adminCriarAdmin()">Criar Admin</div></div>';
+  }
+  menu.innerHTML=html;
+}
+
+function adminUsuarios(){
+  document.getElementById('admin-modal-title').innerText='👥 Usuários';
+  const mesAtual=new Date().toISOString().substring(0,7);
+  const rows=state.users.map(u=>{
+    const usoIA=u.usoIA?.mes===mesAtual?u.usoIA.quantidade:0;
+    const plano=state.plans.find(p=>p.id===u.plano);
+    const limiteIA=plano?.ia===999?'∞':plano?.ia||0;
+    return `<tr><td>${u.nome}</td><td>${u.email}</td><td><span class="badge badge-${u.tipo}">${u.tipo}</span></td><td>${u.plano}</td><td>${usoIA}/${limiteIA}</td><td>${u.tipo!=='master'?`<button class="btn-primary" onclick="toggleAtivoUsuario('${u.id}')">${u.ativo?'Bloquear':'Ativar'}</button><button style="background:var(--warning);color:#fff;" onclick="mudarTipoUsuario('${u.id}')">${u.tipo==='user'?'Promover':'Rebaixar'}</button><button class="btn-danger" onclick="excluirUsuario('${u.id}')">Excluir</button>`:'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('admin-modal-content').innerHTML=`<table class="admin-table"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Plano</th><th>Uso IA</th><th>Ações</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('modal-admin').classList.add('active');
+}
+
+function toggleAtivoUsuario(id){const u=state.users.find(x=>x.id===id);if(!u)return;u.ativo=!u.ativo;salvarUsuarios();adminUsuarios()}
+function mudarTipoUsuario(id){const u=state.users.find(x=>x.id===id);if(!u)return;u.tipo=u.tipo==='user'?'admin':'user';salvarUsuarios();adminUsuarios()}
+function excluirUsuario(id){if(!confirm('Excluir?'))return;state.users=state.users.filter(u=>u.id!==id);localStorage.removeItem('mm_maps_'+id);salvarUsuarios();adminUsuarios()}
+
+function adminTodosMapas(){
+  document.getElementById('admin-modal-title').innerText='📊 Todos os Mapas';
+  let todos=[];
+  state.users.forEach(u=>{const mapas=JSON.parse(localStorage.getItem('mm_maps_'+u.id)||'[]');mapas.forEach(m=>todos.push({...m,dono:u.nome}))});
+  if(todos.length===0)document.getElementById('admin-modal-content').innerHTML='<p>Nenhum mapa.</p>';
+  else{const rows=todos.map(m=>`<tr><td>${m.nome}</td><td>${m.dono}</td><td>${m.nos.length}</td><td>${new Date(m.dataModificacao).toLocaleDateString('pt-BR')}</td></tr>`).join('');document.getElementById('admin-modal-content').innerHTML=`<table class="admin-table"><thead><tr><th>Mapa</th><th>Dono</th><th>Tópicos</th><th>Modificado</th></tr></thead><tbody>${rows}</tbody></table>`}
+  document.getElementById('modal-admin').classList.add('active');
+}
+
+function adminPlanos(){
+  document.getElementById('admin-modal-title').innerText='💎 Planos';
+  const rows=state.plans.map(p=>`<tr><td><strong>${p.nome}</strong></td><td>${formatarPreco(p.preco)}</td><td>${p.mapas===999?'∞':p.mapas}</td><td>${p.ia===999?'∞':p.ia}</td><td>${p.ativo===false?'<span style="color:var(--danger);">Inativo</span>':'<span style="color:var(--success);">Ativo</span>'}</td><td><button class="btn-primary" onclick="editarPlano('${p.id}')">Editar</button><button style="background:var(--warning);color:#fff;" onclick="duplicarPlano('${p.id}')">Duplicar</button>${p.id!=='free'?`<button class="btn-danger" onclick="excluirPlano('${p.id}')">Excluir</button>`:''}</td></tr>`).join('');
+  document.getElementById('admin-modal-content').innerHTML=`<button class="btn-success" onclick="criarNovoPlano()" style="padding:10px 20px;border-radius:6px;border:none;cursor:pointer;margin-bottom:1rem;">+ Criar Novo Plano</button><table class="admin-table"><thead><tr><th>Plano</th><th>Preço</th><th>Mapas</th><th>IA/mês</th><th>Status</th><th>Ações</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('modal-admin').classList.add('active');
+}
+
+function criarNovoPlano(){const novoId='plan_'+Date.now();state.plans.push({id:novoId,nome:'Novo Plano',preco:0,mapas:5,ia:20,ativo:true,features:['Recurso 1']});salvarPlanos();editarPlano(novoId)}
+function duplicarPlano(id){const original=state.plans.find(p=>p.id===id);if(!original)return;const copia=JSON.parse(JSON.stringify(original));copia.id='plan_'+Date.now();copia.nome=original.nome+' (Cópia)';state.plans.push(copia);salvarPlanos();adminPlanos()}
+function excluirPlano(id){
+  if(id==='free'){alert('Plano Free não pode ser excluído');return}
+  const usuariosNoPlano=state.users.filter(u=>u.plano===id).length;
+  if(usuariosNoPlano>0){if(!confirm(`${usuariosNoPlano} usuário(s) serão movidos para Free. Continuar?`))return;state.users.forEach(u=>{if(u.plano===id)u.plano='free'});salvarUsuarios()}else{if(!confirm('Excluir plano?'))return}
+  state.plans=state.plans.filter(p=>p.id!==id);salvarPlanos();adminPlanos();
+}
+
+function editarPlano(id){
+  const plano=state.plans.find(p=>p.id===id);if(!plano)return;
+  document.getElementById('admin-modal-title').innerText=`✏️ Editar: ${plano.nome}`;
+  document.getElementById('admin-modal-content').innerHTML=`
+    <label>Nome</label><input type="text" id="edit-nome" value="${plano.nome}">
+    <label>Preço (moeda base BRL)</label><input type="number" id="edit-preco" value="${plano.preco}" min="0" step="0.01">
+    <label>Limite de Mapas (999 = ilimitado)</label><input type="number" id="edit-mapas" value="${plano.mapas}" min="1">
+    <label>Gerações IA/mês (999 = ilimitado)</label><input type="number" id="edit-ia" value="${plano.ia}" min="0">
+    <label>Status</label>
+    <select id="edit-ativo"><option value="true" ${plano.ativo!==false?'selected':''}>✅ Ativo</option><option value="false" ${plano.ativo===false?'selected':''}>❌ Inativo</option></select>
+    <label>Features (uma por linha)</label>
+    <textarea id="edit-features" style="min-height:150px;">${plano.features.join('\n')}</textarea>
+    <div style="margin-top:1rem;display:flex;gap:8px;">
+      <button class="btn-primary" onclick="salvarEdicaoPlano('${plano.id}')" style="padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">💾 Salvar</button>
+      <button class="btn-cancel" onclick="adminPlanos()" style="padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">Cancelar</button>
+    </div>
+  `;
+  document.getElementById('modal-admin').classList.add('active');
+}
+
+function salvarEdicaoPlano(id){
+  const plano=state.plans.find(p=>p.id===id);if(!plano)return;
+  const nome=document.getElementById('edit-nome').value.trim();
+  const preco=parseFloat(document.getElementById('edit-preco').value)||0;
+  const mapas=parseInt(document.getElementById('edit-mapas').value)||1;
+  const ia=parseInt(document.getElementById('edit-ia').value)||0;
+  const ativo=document.getElementById('edit-ativo').value==='true';
+  const features=document.getElementById('edit-features').value.split('\n').map(l=>l.trim()).filter(l=>l);
+  if(!nome){alert('Nome obrigatório');return}
+  if(features.length===0){alert('Adicione pelo menos uma feature');return}
+  plano.nome=nome;plano.preco=preco;plano.mapas=mapas;plano.ia=ia;plano.ativo=ativo;plano.features=features;
+  salvarPlanos();adminPlanos();alert('✅ Plano atualizado!');
+}
+
+function adminPagamentos(){
+  document.getElementById('admin-modal-title').innerText='💳 Pagamentos';
+  const pendentes=state.users.filter(u=>u.planoPendente);
+  if(pendentes.length===0)document.getElementById('admin-modal-content').innerHTML='<p>✅ Nenhum pagamento pendente.</p>';
+  else{const rows=pendentes.map(u=>`<tr><td>${u.nome}</td><td>${u.email}</td><td>${u.planoPendente}</td><td><button class="btn-success" onclick="liberarManual('${u.id}')">Liberar</button><button class="btn-danger" onclick="cancelarManual('${u.id}')">Cancelar</button></td></tr>`).join('');document.getElementById('admin-modal-content').innerHTML=`<table class="admin-table"><thead><tr><th>Usuário</th><th>E-mail</th><th>Plano</th><th>Ações</th></tr></thead><tbody>${rows}</tbody></table>`}
+  document.getElementById('modal-admin').classList.add('active');
+}
+function liberarManual(id){const u=state.users.find(x=>x.id===id);if(!u)return;u.plano=u.planoPendente;u.planoPendente=null;salvarUsuarios();adminPagamentos();alert('✅ Liberado!')}
+function cancelarManual(id){const u=state.users.find(x=>x.id===id);if(!u)return;u.planoPendente=null;salvarUsuarios();adminPagamentos()}
+
+function adminIA(){
+  document.getElementById('admin-modal-title').innerText='🤖 Configurar IA (Master)';
+  const s=state.settings;
+  document.getElementById('admin-modal-content').innerHTML=`
+    <label>Provedor</label>
+    <select id="cfg-provider" onchange="atualizarModelosIA(this.value)">
+      <option value="groq" ${s.aiProvider==='groq'?'selected':''}>Groq (Llama)</option>
+      <option value="openai" ${s.aiProvider==='openai'?'selected':''}>OpenAI (GPT)</option>
+      <option value="gemini" ${s.aiProvider==='gemini'?'selected':''}>Google Gemini</option>
+      <option value="grok" ${s.aiProvider==='grok'?'selected':''}>xAI Grok</option>
+    </select>
+    <label>Modelo</label><input type="text" id="cfg-model" value="${s.aiModel}">
+    <label>Chave API</label><input type="password" id="cfg-key" value="${s.aiKey}" placeholder="Cole a chave">
+    <div style="margin-top:1rem;display:flex;gap:8px;">
+      <button class="btn-primary" onclick="salvarConfigIA()" style="padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">Salvar</button>
+      <button class="btn-success" onclick="testarIA()" style="padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">Testar</button>
+    </div>
+    <div id="teste-ia-result" style="margin-top:1rem;"></div>
+  `;
+  document.getElementById('modal-admin').classList.add('active');
+}
+function atualizarModelosIA(provider){const modelos={groq:'llama-3.3-70b-versatile',openai:'gpt-4o-mini',gemini:'gemini-1.5-flash',grok:'grok-2-latest'};document.getElementById('cfg-model').value=modelos[provider]||''}
+function salvarConfigIA(){state.settings.aiProvider=document.getElementById('cfg-provider').value;state.settings.aiModel=document.getElementById('cfg-model').value;state.settings.aiKey=document.getElementById('cfg-key').value;salvarSettings();alert('✅ IA configurada!')}
+async function testarIA(){
+  const result=document.getElementById('teste-ia-result');
+  result.innerHTML='<p>Testando...</p>';
+  const oldKey=state.settings.aiKey;
+  state.settings.aiKey=document.getElementById('cfg-key').value;
+  state.settings.aiProvider=document.getElementById('cfg-provider').value;
+  state.settings.aiModel=document.getElementById('cfg-model').value;
+  try{await chamarIA('Responda: OK','Teste',10);result.innerHTML='<p style="color:var(--success);">✅ Funcionando!</p>'}catch(e){result.innerHTML=`<p style="color:var(--danger);">❌ ${e.message}</p>`}
+  state.settings.aiKey=oldKey;
+}
+
+function adminPagamentosConfig(){
+  document.getElementById('admin-modal-title').innerText='💳 Chaves Pagamento (Master)';
+  const s=state.settings;
+  document.getElementById('admin-modal-content').innerHTML=`
+    <label>Stripe Secret Key</label><input type="password" id="cfg-stripe" value="${s.stripeKey||''}" placeholder="sk_live_...">
+    <label>Stripe Webhook Secret</label><input type="password" id="cfg-stripe-wh" value="${s.stripeWebhook||''}" placeholder="whsec_...">
+    <label>Chave Pix (Mercado Pago/Asaas/Efí)</label><input type="password" id="cfg-pix" value="${s.pixKey||''}">
+    <button class="btn-primary" onclick="salvarConfigPag()" style="margin-top:1rem;padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">Salvar</button>
+  `;
+  document.getElementById('modal-admin').classList.add('active');
+}
+function salvarConfigPag(){state.settings.stripeKey=document.getElementById('cfg-stripe').value;state.settings.stripeWebhook=document.getElementById('cfg-stripe-wh').value;state.settings.pixKey=document.getElementById('cfg-pix').value;salvarSettings();alert('✅ Pagamentos configurados!')}
+
+function adminMarca(){
+  document.getElementById('admin-modal-title').innerText='🎨 Marca';
+  const s=state.settings;
+  document.getElementById('admin-modal-content').innerHTML=`
+    <label>Nome do Produto</label><input type="text" id="cfg-nome" value="${s.productName}">
+    <label>Logo (URL ou upload)</label><input type="text" id="cfg-logo" value="${s.logo||''}">
+    <input type="file" id="cfg-logo-file" accept="image/*" onchange="uploadLogo(this)" style="margin-top:8px;">
+    <label>Favicon (URL ou upload)</label><input type="text" id="cfg-favicon" value="${s.favicon||''}">
+    <input type="file" id="cfg-favicon-file" accept="image/*" onchange="uploadFavicon(this)" style="margin-top:8px;">
+    <button class="btn-primary" onclick="salvarConfigMarca()" style="margin-top:1rem;padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">Salvar</button>
+  `;
+  document.getElementById('modal-admin').classList.add('active');
+}
+function uploadLogo(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>document.getElementById('cfg-logo').value=e.target.result;reader.readAsDataURL(file)}
+function uploadFavicon(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>document.getElementById('cfg-favicon').value=e.target.result;reader.readAsDataURL(file)}
+function salvarConfigMarca(){state.settings.productName=document.getElementById('cfg-nome').value;state.settings.logo=document.getElementById('cfg-logo').value;state.settings.favicon=document.getElementById('cfg-favicon').value;salvarSettings();aplicarConfiguracoes();alert('✅ Marca atualizada!')}
+
+function adminCriarAdmin(){
+  document.getElementById('admin-modal-title').innerText='👤 Criar Admin';
+  document.getElementById('admin-modal-content').innerHTML=`
+    <label>Nome</label><input type="text" id="new-admin-nome">
+    <label>E-mail</label><input type="email" id="new-admin-email">
+    <label>Senha</label><input type="password" id="new-admin-pass">
+    <label>Tipo</label>
+    <select id="new-admin-tipo"><option value="admin">Admin</option><option value="master">Master</option></select>
+    <button class="btn-primary" onclick="criarAdmin()" style="margin-top:1rem;padding:10px 20px;border-radius:6px;border:none;cursor:pointer;">Criar</button>
+  `;
+  document.getElementById('modal-admin').classList.add('active');
+}
+function criarAdmin(){
+  const nome=document.getElementById('new-admin-nome').value.trim();
+  const email=document.getElementById('new-admin-email').value.trim().toLowerCase();
+  const pass=document.getElementById('new-admin-pass').value;
+  const tipo=document.getElementById('new-admin-tipo').value;
+  if(!nome||!email||!pass){alert('Preencha tudo');return}
+  if(state.users.find(u=>u.email.toLowerCase()===email)){alert('E-mail já existe');return}
+  state.users.push({id:'adm_'+Date.now(),nome,email,password:pass,tipo,plano:'business',dataCriacao:new Date().toISOString(),ativo:true,usoIA:{mes:new Date().toISOString().substring(0,7),quantidade:0}});
+  salvarUsuarios();fecharModal('modal-admin');alert('✅ Admin criado!');
+}
+
+window.onload=()=>{
+  console.log('✅ Inicializando MindMap AI...');
+  carregarDados();
+  aplicarConfiguracoes();
+  if(!verificarSessao())mostrarLogin();
+  console.log('✅ Pronto!');
+};
+</script>
+</body>
+</html>
