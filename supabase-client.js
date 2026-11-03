@@ -52,11 +52,30 @@ async function getProfile() {
   const user = await authGetUser();
   if (!user) return null;
   
-  const { data, error } = await supabaseClient
+  // 1. Pega os dados do perfil do usuário
+  const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
-    .select('*, planos(nome, limite_mapas, limite_ia, preco_brl, preco_usd, preco_eur, features)')
+    .select('*')
     .eq('id', user.id)
     .single();
+  
+  if (profileError) throw profileError;
+
+  // 2. Se o usuário tiver um plano definido, busca os detalhes dele separadamente
+  if (profile.plano) {
+    const { data: planoData } = await supabaseClient
+      .from('planos')
+      .select('*')
+      .eq('id', profile.plano) // Tenta buscar pelo ID. Se seu plano for texto (ex: 'pro'), mude para .eq('nome', profile.plano)
+      .single();
+    
+    if (planoData) {
+      profile.plano_dados = planoData; // Anexa os dados do plano ao objeto do perfil
+    }
+  }
+  
+  return profile;
+}
   
   if (error) throw error;
   return data;
