@@ -1039,7 +1039,118 @@ function criarAdmin(){
   state.users.push({id:'adm_'+Date.now(),nome,email,password:pass,tipo,plano:'business',dataCriacao:new Date().toISOString(),ativo:true,usoIA:{mes:new Date().toISOString().substring(0,7),quantidade:0}});
   salvarUsuarios();fecharModal('modal-admin');alert('✅ Admin criado!');
 }
+// ==========================================
+// ATUALIZAÇÃO: CONEXÃO REAL COM SUPABASE E CAKTO
+// ==========================================
 
+// 1. Sobrescrever Login
+window.fazerLogin = async function() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-password').value;
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  try {
+    const btn = event.target; btn.disabled = true; btn.innerText = 'Entrando...';
+    await authLogin(email, senha); 
+    // O listener do supabase-client.js vai cuidar do resto
+  } catch (e) {
+    err.innerText = 'E-mail ou senha incorretos.';
+    err.style.display = 'block';
+    const btn = event.target; btn.disabled = false; btn.innerText = 'Entrar';
+  }
+};
+
+// 2. Sobrescrever Cadastro
+window.fazerCadastro = async function() {
+  const nome = document.getElementById('cadastro-nome').value.trim();
+  const email = document.getElementById('cadastro-email').value.trim().toLowerCase();
+  const senha = document.getElementById('cadastro-password').value;
+  const err = document.getElementById('cadastro-error');
+  const suc = document.getElementById('cadastro-success');
+  err.style.display = 'none'; suc.style.display = 'none';
+  
+  if (!nome || !email || !senha) { err.innerText = 'Preencha tudo'; err.style.display = 'block'; return; }
+  
+  try {
+    await authSignup(nome, email, senha);
+    suc.innerText = 'Conta criada! Verifique seu e-mail para confirmar.';
+    suc.style.display = 'block';
+    setTimeout(() => mostrarLogin(), 3000);
+  } catch (e) {
+    err.innerText = 'Erro ao criar conta: ' + e.message;
+    err.style.display = 'block';
+  }
+};
+
+// 3. Sobrescrever Logout
+window.fazerLogout = async function() {
+  await authLogout();
+  state.currentUser = null;
+  mostrarLogin();
+};
+
+// 4. Sobrescrever Pagamento (Stripe e Pix Real)
+window.selecionarPagamento = async function(metodo) {
+  document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  const det = document.getElementById('pagamento-detalhes');
+  det.innerHTML = '<p style="text-align:center;">Processando...</p>';
+
+  // Pega o plano selecionado (assumindo que está no state ou variável global)
+  // Para simplificar, vamos usar o último plano clicado na tela de planos
+  const planoId = window.planoSelecionadoId || 'pro'; 
+  const moeda = 'BRL';
+
+  try {
+    if (metodo === 'stripe') {
+      const res = await criarCheckout(planoId, moeda, 'stripe');
+      if (res.url) window.location.href = res.url; // Redireciona para o Stripe
+      else throw new Error('Erro ao gerar link Stripe');
+    } 
+    else if (metodo === 'pix') {
+      // Chama a função da Cakto que criamos
+      const response = await fetch('/.netlify/functions/create-pix-charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: 3900, // R$ 39,00 em centavos
+          customer: { name: state.currentUser?.nome || 'Usuário', email: state.currentUser?.email || '' },
+          description: 'Plano Pro CGMaps',
+          user_id: state.currentUser?.id,
+          plano_id: planoId
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Erro ao gerar Pix');
+
+      // Mostra o QR Code na tela
+      det.innerHTML = `
+        <div class="pix-qr">
+          <p><strong>📱 Escaneie o QR Code:</strong></p>
+          <img src="${data.qr_code_base64}" style="width:200px; height:200px; margin:10px auto; display:block;">
+          <p style="font-size:12px; word-break:break-all;">Copia e Cola: ${data.qr_code}</p>
+          <p style="color:var(--success); font-weight:bold;">Aguardando pagamento...</p>
+        </div>
+      `;
+    }
+  } catch (e) {
+    det.innerHTML = `<p style="color:red;">Erro: ${e.message}</p>`;
+  }
+};
+
+// Listener para quando o usuário logar (Conecta o Supabase ao Dashboard)
+window.onUserSignedIn = async (user) => {
+  console.log('Logado:', user.email);
+  const profile = await getProfile();
+  state.currentUser = profile;
+  state.plans = await listarPlanos();
+  
+  // Salva o ID do plano para o pagamento usar
+  window.planoSelecionadoId = 'pro'; 
+  
+  aplicarConfiguracoes();
+  abrirDashboard();
+};  
 window.onload=()=>{
   console.log('✅ Inicializando MindMap AI...');
   carregarDados();
