@@ -5,7 +5,7 @@
 // 1. SUAS CREDENCIAIS DO SUPABASE
 // ⚠️ ATENÇÃO: Cole a chave ANON PUBLIC (não a service_role) e mantenha tudo em uma linha só.
 const SUPABASE_URL = 'https://kmtfghntznfvuniiwugv.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_rgphJ7j4ojvH3vcsYQtnoA_SA4ROpct';
+const SUPABASE_ANON_KEY = 'sb_publishable_FWu_HHq3GlAt91E-irf3SA_dWjMJQ9H';
 
 // 2. INICIALIZAÇÃO DO CLIENTE
 // Usamos 'supabaseClient' para evitar conflito com a biblioteca global
