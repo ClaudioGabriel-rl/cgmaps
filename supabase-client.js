@@ -3,8 +3,8 @@
 // ============================================
 
 // IMPORTANTE: Substitua pelos seus valores do Supabase
-const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJ...SUA-CHAVE-ANON-AQUI...';
+const SUPABASE_URL = 'https://kmtfghntznfvuniiwugv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_rgphJ7j4ojvH3vcsYQtnoA_SA4ROpct';
 
 // Inicializa o client do Supabase
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
