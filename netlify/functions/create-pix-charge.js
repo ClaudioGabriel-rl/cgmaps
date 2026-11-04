@@ -1,5 +1,6 @@
 // ==========================================
-// FUNÇÃO DE PAGAMENTO PIX (CAKTO) - COM OAUTH2
+// FUNÇÃO DE PAGAMENTO PIX (CAKTO) - VERSÃO HÍBRIDA
+// Tenta API Key simples OU OAuth2 automaticamente
 // ==========================================
 
 exports.handler = async (event) => {
@@ -13,44 +14,58 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
   try {
+    const apiKey = process.env.CAKTO_API_KEY;
     const clientId = process.env.CAKTO_CLIENT_ID;
     const clientSecret = process.env.CAKTO_CLIENT_SECRET;
     
-    console.log('🔑 Client ID presente?', !!clientId);
-    console.log('🔑 Client Secret presente?', !!clientSecret);
-    
-    if (!clientId || !clientSecret) {
-      throw new Error('CAKTO_CLIENT_ID ou CAKTO_CLIENT_SECRET não configurados no Netlify.');
-    }
+    console.log('🔑 Variáveis disponíveis:');
+    console.log('  - CAKTO_API_KEY:', !!apiKey);
+    console.log('  - CAKTO_CLIENT_ID:', !!clientId);
+    console.log('  - CAKTO_CLIENT_SECRET:', !!clientSecret);
 
     const body = JSON.parse(event.body);
-    console.log('📦 Dados recebidos do site:', body);
+    console.log('📦 Dados recebidos:', body);
 
-    // ETAPA 1: Obter o access_token via OAuth2
-    console.log('🔐 Obtendo access_token da Cakto...');
-    const tokenResponse = await fetch('https://api.cakto.com.br/public_api/token/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: 'client_credentials'
-      })
-    });
+    let accessToken = null;
 
-    const tokenData = await tokenResponse.json();
-    console.log('🔐 Resposta do token:', tokenData);
+    // MÉTODO 1: Tenta OAuth2 primeiro (se tiver client_id e client_secret)
+    if (clientId && clientSecret) {
+      console.log('🔐 Tentando OAuth2...');
+      try {
+        const tokenResponse = await fetch('https://api.cakto.com.br/public_api/token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            grant_type: 'client_credentials'
+          })
+        });
 
-    if (!tokenResponse.ok || !tokenData.access_token) {
-      throw new Error('Falha ao obter token: ' + JSON.stringify(tokenData));
+        const tokenData = await tokenResponse.json();
+        console.log('🔐 Resposta OAuth2:', tokenData);
+
+        if (tokenResponse.ok && tokenData.access_token) {
+          accessToken = tokenData.access_token;
+          console.log('✅ Token OAuth2 obtido com sucesso');
+        }
+      } catch (e) {
+        console.log('⚠️ OAuth2 falhou:', e.message);
+      }
     }
 
-    const accessToken = tokenData.access_token;
-    console.log('✅ Token obtido com sucesso');
+    // MÉTODO 2: Usa API Key simples (se tiver)
+    if (!accessToken && apiKey) {
+      console.log('🔑 Usando API Key simples');
+      accessToken = apiKey;
+    }
 
-    // ETAPA 2: Criar a cobrança Pix com o token
+    // Se nenhum método funcionou, erro
+    if (!accessToken) {
+      throw new Error('Nenhuma credencial válida configurada. Configure CAKTO_API_KEY ou CAKTO_CLIENT_ID + CAKTO_CLIENT_SECRET no Netlify.');
+    }
+
+    // Cria a cobrança Pix
     console.log('💳 Criando cobrança Pix...');
     const response = await fetch('https://api.cakto.com.br/public_api/payments/', {
       method: 'POST',
@@ -78,7 +93,7 @@ exports.handler = async (event) => {
     console.log('📡 Resposta da Cakto:', data);
 
     if (!response.ok) {
-      throw new Error(data.message || JSON.stringify(data));
+      throw new Error(data.detail || data.message || JSON.stringify(data));
     }
 
     return {
@@ -92,7 +107,7 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('💥 ERRO FATAL NO PIX:', error.message);
+    console.error('💥 ERRO FATAL:', error.message);
     return {
       statusCode: 500,
       headers,
