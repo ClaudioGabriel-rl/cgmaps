@@ -1051,7 +1051,8 @@ window.fazerLogin = async function() {
   err.style.display = 'none';
   try {
     const btn = event.target; btn.disabled = true; btn.innerText = 'Entrando...';
-    await authLogin(email, senha); 
+       const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password: senha });
+   if (error) throw error; 
     // O listener do supabase-client.js vai cuidar do resto
   } catch (e) {
     err.innerText = 'E-mail ou senha incorretos.';
