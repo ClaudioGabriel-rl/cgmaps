@@ -1049,15 +1049,26 @@ window.fazerLogin = async function() {
   const senha = document.getElementById('login-password').value;
   const err = document.getElementById('login-error');
   err.style.display = 'none';
+  
   try {
-    const btn = event.target; btn.disabled = true; btn.innerText = 'Entrando...';
-       const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password: senha });
-   if (error) throw error; 
-    // O listener do supabase-client.js vai cuidar do resto
+    const btn = event.target; 
+    btn.disabled = true; 
+    btn.innerText = 'Entrando...';
+    
+    const { data, error } = await window.supabaseClient.auth.signInWithPassword({ 
+      email, 
+      password: senha 
+    });
+    if (error) throw error;
+    
+    btn.disabled = false; 
+    btn.innerText = 'Entrar';
   } catch (e) {
     err.innerText = 'E-mail ou senha incorretos.';
     err.style.display = 'block';
-    const btn = event.target; btn.disabled = false; btn.innerText = 'Entrar';
+    const btn = event.target; 
+    btn.disabled = false; 
+    btn.innerText = 'Entrar';
   }
 };
 
