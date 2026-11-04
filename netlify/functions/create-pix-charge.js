@@ -36,7 +36,7 @@ exports.handler = async (event) => {
         },
         items: [
           {
-            offerId: body.plano_id || 'pro', // ⚠️ IMPORTANTE: Deve ser um ID de oferta válido criado no painel da Cakto
+            offerId: body.plano_id || '89a82d19-3056-4816-bd71-5e10905f37e2', // ⚠️ IMPORTANTE: Deve ser um ID de oferta válido criado no painel da Cakto
             quantity: 1
           }
         ],
