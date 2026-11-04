@@ -1202,40 +1202,61 @@ if (typeof window.abrirDashboard !== 'function') {
 // 2. O que acontece quando o login é confirmado
 window.onUserSignedIn = async function(user) {
   console.log('✅ Logado com sucesso:', user.email);
-  window.abrirDashboard();
   
   try {
     // 1. Busca o perfil no banco
-    const { data: profile } = await window.supabaseClient
+    let { data: profile, error } = await window.supabaseClient
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
     
+    // 2. Se o perfil não existir, cria um fallback para o site não quebrar
+    if (error || !profile) {
+      console.log('⚠️ Perfil não encontrado no banco, usando fallback...');
+      profile = {
+        id: user.id,
+        nome: user.user_metadata?.nome || 'Usuário',
+        tipo: 'user',
+        plano: 'free',
+        usoIA: 0
+      };
+      // Tenta salvar esse perfil padrão no banco
+      await window.supabaseClient.from('profiles').insert(profile);
+    }
+    
+    // 3. Salva no estado global (AGORA o state.currentUser deixa de ser null)
     state.currentUser = profile;
+    console.log('📊 Perfil carregado:', state.currentUser);
 
-    // 2. Ativa o botão Admin se for Master
+    // 4. Ativa o botão Admin se for Master
     if (user.email === 'claudioidbrasil@proton.me' || profile?.tipo === 'master') {
       const btnAdmin = document.getElementById('btn-admin');
       if (btnAdmin) btnAdmin.style.display = 'block';
       console.log('👑 Modo Master ativado!');
     }
 
-    // 3. Busca os mapas no banco de dados
-    const { data: mapas, error } = await window.supabaseClient
+    // 5. Busca os mapas no banco de dados
+    const { data: mapas, error: mapError } = await window.supabaseClient
       .from('mapas')
       .select('*')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
 
-    if (error) throw error;
+    if (mapError) {
+      console.error('Erro ao buscar mapas:', mapError);
+      state.mapas = [];
+    } else {
+      state.mapas = mapas || [];
+      console.log('🗺️ Mapas encontrados no banco:', state.mapas.length);
+    }
 
-    // Salva os mapas no estado global e mostra no console para conferirmos
-    state.mapas = mapas || [];
-    console.log('🗺️ Mapas encontrados no banco:', state.mapas.length);
-    console.log('Dados dos mapas:', state.mapas);
+    // 6. AGORA SIM, abre o dashboard (depois que o state está 100% pronto)
+    if (typeof window.abrirDashboard === 'function') {
+      window.abrirDashboard();
+    }
 
-    // 4. Tenta renderizar na tela (se a função existir no seu código antigo)
+    // 7. Tenta renderizar os mapas na tela
     if (typeof window.renderizarMapas === 'function') {
       window.renderizarMapas();
     } else if (typeof window.atualizarListaMapas === 'function') {
@@ -1244,6 +1265,9 @@ window.onUserSignedIn = async function(user) {
 
   } catch (e) {
     console.error('Erro ao carregar dados iniciais:', e);
+    // Fallback de emergência para nunca travar a tela
+    state.currentUser = { id: user.id, nome: 'Usuário', tipo: 'user', plano: 'free', usoIA: 0 };
+    if (typeof window.abrirDashboard === 'function') window.abrirDashboard();
   }
 };
 
