@@ -1061,7 +1061,12 @@ window.fazerLogin = async function() {
 };
 
 // 2. Sobrescrever Cadastro
-window.fazerCadastro = async function() {
+   const { data, error } = await window.supabaseClient.auth.signUp({
+     email,
+     password: senha,
+     options: { data: { nome, tipo: 'user' } }
+   });
+   if (error) throw error;
   const nome = document.getElementById('cadastro-nome').value.trim();
   const email = document.getElementById('cadastro-email').value.trim().toLowerCase();
   const senha = document.getElementById('cadastro-password').value;
