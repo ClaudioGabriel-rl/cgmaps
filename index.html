@@ -1282,6 +1282,67 @@ window.onUserSignedOut = function() {
     window.onUserSignedIn(session.user);
   }
 })();
+// ==========================================
+// LOGOUT DEFINITIVO - FORÇA TOTAL
+// ==========================================
+
+// Garante que a função existe no escopo global
+window.fazerLogout = async function() {
+  console.log('🔴 Tentando fazer logout...');
+  
+  try {
+    // 1. Faz logout no Supabase
+    const { error } = await window.supabaseClient.auth.signOut();
+    
+    if (error) {
+      console.error('Erro no signOut:', error);
+      throw error;
+    }
+    
+    console.log('✅ Logout no Supabase realizado');
+    
+    // 2. Limpa o estado local
+    state.currentUser = null;
+    state.mapas = [];
+    
+    // 3. Esconde elementos do dashboard
+    const dashboard = document.getElementById('dashboard');
+    if (dashboard) dashboard.style.display = 'none';
+    
+    // 4. Esconde o botão admin
+    const btnAdmin = document.getElementById('btn-admin');
+    if (btnAdmin) btnAdmin.style.display = 'none';
+    
+    // 5. Mostra a tela de login
+    const telaLogin = document.getElementById('tela-login');
+    if (telaLogin) {
+      telaLogin.style.display = 'block';
+      console.log('✅ Tela de login exibida');
+    } else {
+      console.warn('⚠️ Elemento tela-login não encontrado, recarregando página...');
+      window.location.reload();
+    }
+    
+    // 6. Limpa os campos de login
+    const loginEmail = document.getElementById('login-email');
+    const loginPassword = document.getElementById('login-password');
+    if (loginEmail) loginEmail.value = '';
+    if (loginPassword) loginPassword.value = '';
+    
+    console.log('🎉 Logout completo!');
+    
+  } catch (e) {
+    console.error('❌ Erro fatal no logout:', e);
+    // Fallback: recarrega a página
+    window.location.reload();
+  }
+};
+
+// Garante que está no escopo global
+if (typeof window !== 'undefined') {
+  window.fazerLogout = window.fazerLogout;
+} 
+console.log('✅ Função de logout registrada globalmente');
 </script>
 </body>
 </html>
