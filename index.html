@@ -1062,12 +1062,7 @@ window.fazerLogin = async function() {
 };
 
 // 2. Sobrescrever Cadastro
-   const { data, error } = await window.supabaseClient.auth.signUp({
-     email,
-     password: senha,
-     options: { data: { nome, tipo: 'user' } }
-   });
-   if (error) throw error;
+window.fazerCadastro = async function() {
   const nome = document.getElementById('cadastro-nome').value.trim();
   const email = document.getElementById('cadastro-email').value.trim().toLowerCase();
   const senha = document.getElementById('cadastro-password').value;
@@ -1078,7 +1073,13 @@ window.fazerLogin = async function() {
   if (!nome || !email || !senha) { err.innerText = 'Preencha tudo'; err.style.display = 'block'; return; }
   
   try {
-    await authSignup(nome, email, senha);
+    const { data, error } = await window.supabaseClient.auth.signUp({
+      email,
+      password: senha,
+      options: { data: { nome, tipo: 'user' } }
+    });
+    if (error) throw error;
+    
     suc.innerText = 'Conta criada! Verifique seu e-mail para confirmar.';
     suc.style.display = 'block';
     setTimeout(() => mostrarLogin(), 3000);
