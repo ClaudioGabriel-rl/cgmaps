@@ -1176,6 +1176,53 @@ window.onload=()=>{
   if(!verificarSessao())mostrarLogin();
   console.log('✅ Pronto!');
 };
+// ==========================================
+// CORREÇÃO DO "TRAVADO" APÓS CONFIRMAR E-MAIL
+// ==========================================
+
+// 1. Garante que as funções de troca de tela funcionem
+if (typeof window.mostrarLogin !== 'function') {
+  window.mostrarLogin = () => {
+    const dash = document.getElementById('dashboard');
+    const login = document.getElementById('tela-login');
+    if (dash) dash.style.display = 'none';
+    if (login) login.style.display = 'block';
+  };
+}
+
+if (typeof window.abrirDashboard !== 'function') {
+  window.abrirDashboard = () => {
+    const dash = document.getElementById('dashboard');
+    const login = document.getElementById('tela-login');
+    if (dash) dash.style.display = 'block';
+    if (login) login.style.display = 'none';
+  };
+}
+
+// 2. O que acontece quando o login é confirmado
+window.onUserSignedIn = async function(user) {
+  console.log('✅ Logado com sucesso:', user.email);
+  window.abrirDashboard();
+  
+  // Dá o poder de Admin para o seu e-mail específico
+  if (user.email === 'claudioidbrasil@proton.me') {
+    const btnAdmin = document.getElementById('btn-admin');
+    if (btnAdmin) btnAdmin.style.display = 'block';
+    console.log('👑 Modo Master ativado!');
+  }
+};
+
+window.onUserSignedOut = function() {
+  window.mostrarLogin();
+};
+
+// 3. Força a verificação da sessão ao carregar a página (resolve o travamento)
+(async function checarSessaoInicial() {
+  const { data: { session } } = await window.supabaseClient.auth.getSession();
+  if (session) {
+    window.onUserSignedIn(session.user);
+  }
+})();
 </script>
 </body>
 </html>
