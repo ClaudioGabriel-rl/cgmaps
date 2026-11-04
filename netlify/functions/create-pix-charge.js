@@ -1,5 +1,5 @@
 // ==========================================
-// FUNÇÃO DE PAGAMENTO PIX (CAKTO) - VERSÃO FINAL CORRETIVA
+// FUNÇÃO DE PAGAMENTO PIX (CAKTO) - COM OAUTH2
 // ==========================================
 
 exports.handler = async (event) => {
@@ -13,21 +13,51 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
   try {
-    const apiKey = process.env.CAKTO_API_KEY;
-    if (!apiKey) {
-      throw new Error('A variável CAKTO_API_KEY não está configurada no Netlify.');
+    const clientId = process.env.CAKTO_CLIENT_ID;
+    const clientSecret = process.env.CAKTO_CLIENT_SECRET;
+    
+    console.log('🔑 Client ID presente?', !!clientId);
+    console.log('🔑 Client Secret presente?', !!clientSecret);
+    
+    if (!clientId || !clientSecret) {
+      throw new Error('CAKTO_CLIENT_ID ou CAKTO_CLIENT_SECRET não configurados no Netlify.');
     }
 
     const body = JSON.parse(event.body);
     console.log('📦 Dados recebidos do site:', body);
 
-    // ENDEREÇO CORRETO DA API DA CAKTO
-    const response = await fetch('https://api.cakto.com.br/public_api/payments/', { 
+    // ETAPA 1: Obter o access_token via OAuth2
+    console.log('🔐 Obtendo access_token da Cakto...');
+    const tokenResponse = await fetch('https://api.cakto.com.br/public_api/token/', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials'
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    console.log('🔐 Resposta do token:', tokenData);
+
+    if (!tokenResponse.ok || !tokenData.access_token) {
+      throw new Error('Falha ao obter token: ' + JSON.stringify(tokenData));
+    }
+
+    const accessToken = tokenData.access_token;
+    console.log('✅ Token obtido com sucesso');
+
+    // ETAPA 2: Criar a cobrança Pix com o token
+    console.log('💳 Criando cobrança Pix...');
+    const response = await fetch('https://api.cakto.com.br/public_api/payments/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': crypto.randomUUID() // Exigido pela Cakto para evitar cobranças duplicadas
+        'X-Idempotency-Key': crypto.randomUUID()
       },
       body: JSON.stringify({
         customer: {
@@ -36,11 +66,11 @@ exports.handler = async (event) => {
         },
         items: [
           {
-            offerId: body.plano_id || '89a82d19-3056-4816-bd71-5e10905f37e2', // ⚠️ IMPORTANTE: Deve ser um ID de oferta válido criado no painel da Cakto
+            offerId: body.plano_id || 'pro',
             quantity: 1
           }
         ],
-        pixExpiresIn: 30 // O Pix expira em 30 minutos
+        pixExpiresIn: 30
       })
     });
 
@@ -51,7 +81,6 @@ exports.handler = async (event) => {
       throw new Error(data.message || JSON.stringify(data));
     }
 
-    // A Cakto retorna o QR Code dentro do objeto 'pix'
     return {
       statusCode: 200,
       headers,
