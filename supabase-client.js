@@ -10,10 +10,19 @@ window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON
 
 console.log('✅ CGMaps - Supabase client inicializado');
 
-// Listener de autenticação
+// Trava para evitar re-login durante o logout
+window.isLoggingOut = false;
+
 window.supabaseClient.auth.onAuthStateChange((event, session) => {
   console.log('Auth event:', event);
-  if (event === 'SIGNED_IN' && window.onUserSignedIn) {
+  
+  // Se estiver fazendo logout, ignora qualquer evento de reautenticação
+  if (window.isLoggingOut) {
+    console.log('🔒 Logout em andamento, ignorando evento:', event);
+    return;
+  }
+  
+  if (event === 'SIGNED_IN' && session && window.onUserSignedIn) {
     window.onUserSignedIn(session.user);
   }
   if (event === 'SIGNED_OUT' && window.onUserSignedOut) {
