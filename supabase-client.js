@@ -255,3 +255,8 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 });
 
 console.log('✅ CGMaps - Supabase client inicializado');
+
+window.authSignup = authSignup;
+window.authLogin = authLogin;
+window.authLogout = authLogout;
+window.getProfile = getProfile;
